@@ -67,22 +67,22 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "report_stat_summary": "📈 ស្ថិតិសរុប៖\n• ភារកិច្ចសរុប៖ %d\n• បានបញ្ចប់៖ %d (%s%%)\n• កំពុងរង់ចាំ៖ %d\n\n",
 
         # Tasks - Private Scope
-        "todo_added": "ភារកិច្ចផ្ទាល់ខ្លួនត្រូវបានរក្សាទុកដោយជោគជ័យ។\nលេខសម្គាល់៖ %s\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s",
+        "todo_added": "ភារកិច្ចផ្ទាល់ខ្លួនត្រូវបានរក្សាទុកដោយជោគជ័យ។\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s",
         "todo_list_header": "បញ្ជីភារកិច្ចផ្ទាល់ខ្លួនដែលកំពុងរង់ចាំ៖\n",
         "todo_empty": "មិនមានភារកិច្ចផ្ទាល់ខ្លួនដែលកំពុងរង់ចាំនោះទេ។",
-        "todo_completed": "✓ ភារកិច្ចផ្ទាល់ខ្លួនលេខសម្គាល់ %s ត្រូវបានកត់សម្គាល់ថាបានបញ្ចប់!\n📅 កាលបរិច្ឆេទបង្កើត៖ %s\n✅ កាលបរិច្ឆេទបញ្ចប់៖ %s",
+        "todo_completed": "✓ ភារកិច្ចផ្ទាល់ខ្លួន ត្រូវបានកត់សម្គាល់ថាបានបញ្ចប់!\n📅 កាលបរិច្ឆេទបង្កើត៖ %s\n✅ កាលបរិច្ឆេទបញ្ចប់៖ %s",
         "todo_not_found": "រកមិនឃើញភារកិច្ចដែលបានស្នើសុំ ឬភារកិច្ចនេះត្រូវបានបញ្ចប់រួចរាល់។",
         "all_tasks_empty": "លោកអ្នកមិនមានភារកិច្ចផ្ទាល់ខ្លួន ឬភារកិច្ចដែលបានប្រគល់ជូនដែលកំពុងរង់ចាំនោះទេ។",
         "prompt_add_options": "សូមជ្រើសរើសទម្រង់បន្ថែមភារកិច្ច៖\n\n1. ភារកិច្ចផ្ទាល់ខ្លួន៖\n/todo add <បរិយាយ> [YYYY-MM-DD HH:MM]\n\n2. ប្រគល់ជូនមន្ត្រីក្នុងក្រុម (សម្រាប់ប្រធាន)៖\n/assign @username <បរិយាយ> <YYYY-MM-DD HH:MM>",
-        "prompt_complete_help": "សូមចុចលើប៊ូតុងខាងក្រោម ឬបញ្ចូលពាក្យបញ្ជា៖\n/complete <លេខសម្គាល់ភារកិច្ច>",
+        "prompt_complete_help": "សូមចុចលើប៊ូតុងខាងក្រោម ដើម្បីកត់សម្គាល់ភារកិច្ចថាបានបញ្ចប់៖",
 
         # Tasks - Group Scope & Boss Member Checking
-        "task_assigned": "ភារកិច្ចថ្មីត្រូវបានប្រគល់ជូន៖ %s\nលេខសម្គាល់៖ %s\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s\nប្រគល់ដោយប្រធាន៖ %s",
+        "task_assigned": "ភារកិច្ចថ្មីត្រូវបានប្រគល់ជូន៖ %s\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s\nប្រគល់ដោយប្រធាន៖ %s",
         "group_tasks_header": "បញ្ជីភារកិច្ចក្រុមដែលកំពុងរង់ចាំក្នុងក្រុមនេះ៖\n",
         "group_tasks_empty": "មិនមានភារកិច្ចដែលកំពុងរង់ចាំក្នុងក្រុមនេះទេ។",
         "my_tasks_header": "បញ្ជីភារកិច្ចដែលបានប្រគល់ជូនលោកអ្នក៖\n",
         "my_tasks_empty": "លោកអ្នកមិនមានភារកិច្ចដែលត្រូវបានប្រគល់ជូនឡើយ។",
-        "task_completed_group": "✓ ភារកិច្ចលេខសម្គាល់ %s ត្រូវបានកត់សម្គាល់ថាបានបញ្ចប់ដោយ %s!\n📅 កាលបរិច្ឆេទបង្កើត៖ %s\n✅ កាលបរិច្ឆេទបញ្ចប់៖ %s",
+        "task_completed_group": "✓ ភារកិច្ចត្រូវបានកត់សម្គាល់ថាបានបញ្ចប់ដោយ %s!\n📅 កាលបរិច្ឆេទបង្កើត៖ %s\n✅ កាលបរិច្ឆេទបញ្ចប់៖ %s",
         "prompt_member_tasks": "សូមបញ្ចូលពាក្យបញ្ជាដើម្បីពិនិត្យភារកិច្ចមន្ត្រី (សម្រាប់ប្រធាន)៖\n/membertasks @username\n\nឧទាហរណ៍៖ /membertasks @john",
         "member_tasks_header": "បញ្ជីភារកិច្ចដែលបានប្រគល់ជូនមន្ត្រី %s៖\n",
         "member_tasks_empty": "មិនមានភារកិច្ចដែលកំពុងរង់ចាំសម្រាប់មន្ត្រី %s នោះទេ។",
@@ -90,8 +90,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Reminders & Daily Briefing
         "daily_briefing_header": "របាយការណ៍សង្ខេបជូនប្រធានប្រចាំព្រឹក - %s\n\nភារកិច្ចផ្ទាល់ខ្លួនដែលត្រូវអនុវត្តថ្ងៃនេះ៖\n",
         "daily_briefing_empty": "លោកអ្នកមិនមានភារកិច្ចផ្ទាល់ខ្លួនសម្រាប់ថ្ងៃនេះទេ។",
-        "group_reminder_alert": "ការរំលឹកកាលបរិច្ឆេទកំណត់ភារកិច្ចក្រុម៖\nមន្ត្រីទទូលខុសត្រូវ៖ %s\nលេខសម្គាល់៖ %s\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s",
-        "private_reminder_alert": "ការរំលឹកភារកិច្ចផ្ទាល់ខ្លួន៖\nលេខសម្គាល់៖ %s\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s",
+        "group_reminder_alert": "ការរំលឹកកាលបរិច្ឆេទកំណត់ភារកិច្ចក្រុម៖\nមន្ត្រីទទូលខុសត្រូវ៖ %s\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s",
+        "private_reminder_alert": "ការរំលឹកភារកិច្ចផ្ទាល់ខ្លួន៖\nបរិយាយ៖ %s\nកាលបរិច្ឆេទកំណត់៖ %s",
 
         # Buttons
         "btn_complete": "កត់សម្គាល់ថាបានបញ្ចប់",
@@ -172,22 +172,22 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "report_stat_summary": "📈 Overall Statistics:\n• Total Tasks: %d\n• Completed: %d (%s%%)\n• Pending: %d\n\n",
         
         # Tasks - Private Scope
-        "todo_added": "Personal task recorded successfully.\nID: %s\nDescription: %s\nDeadline: %s",
+        "todo_added": "Personal task recorded successfully.\nDescription: %s\nDeadline: %s",
         "todo_list_header": "Pending Personal Tasks:\n",
         "todo_empty": "No pending personal tasks found.",
-        "todo_completed": "✓ Personal task ID %s marked as completed!\n📅 Created: %s\n✅ Completed: %s",
+        "todo_completed": "✓ Personal task marked as completed!\n📅 Created: %s\n✅ Completed: %s",
         "todo_not_found": "Requested task not found or already completed.",
         "all_tasks_empty": "You currently have no pending personal or assigned tasks.",
         "prompt_add_options": "How would you like to add a task?\n\n1. For Yourself (Personal To-Do):\n/todo add <description> [YYYY-MM-DD HH:MM]\n\n2. Delegate to Staff (Boss only):\n/assign @username <description> <YYYY-MM-DD HH:MM>",
-        "prompt_complete_help": "Please select an assigned task below to complete, or use:\n/complete <task_id>",
+        "prompt_complete_help": "Please select an assigned task below to complete:",
 
         # Tasks - Group Scope & Boss Member Checking
-        "task_assigned": "New Task Delegated to: %s\nID: %s\nDescription: %s\nDeadline: %s\nAssigned By Boss: %s",
+        "task_assigned": "New Task Delegated to: %s\nDescription: %s\nDeadline: %s\nAssigned By Boss: %s",
         "group_tasks_header": "Pending Group Tasks for this Chat:\n",
         "group_tasks_empty": "No pending group tasks in this chat.",
         "my_tasks_header": "Tasks Assigned to You:\n",
         "my_tasks_empty": "You currently have no assigned tasks.",
-        "task_completed_group": "✓ Task ID %s marked as completed by %s!\n📅 Created: %s\n✅ Completed: %s",
+        "task_completed_group": "✓ Task marked as completed by %s!\n📅 Created: %s\n✅ Completed: %s",
         "prompt_member_tasks": "Please specify the staff member's username to inspect (Boss only):\n/membertasks @username\n\nExample: /membertasks @john",
         "member_tasks_header": "Pending tasks assigned to staff %s:\n",
         "member_tasks_empty": "No pending tasks found for staff %s.",
@@ -195,8 +195,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Reminders & Daily Briefing
         "daily_briefing_header": "Daily Briefing for Boss - %s\n\nPending Personal Tasks:\n",
         "daily_briefing_empty": "You have no personal tasks scheduled for today.",
-        "group_reminder_alert": "Group Task Deadline Warning:\nAssigned Staff: %s\nID: %s\nDescription: %s\nDeadline: %s",
-        "private_reminder_alert": "Personal Task Reminder:\nID: %s\nDescription: %s\nDeadline: %s",
+        "group_reminder_alert": "Group Task Deadline Warning:\nAssigned Staff: %s\nDescription: %s\nDeadline: %s",
+        "private_reminder_alert": "Personal Task Reminder:\nDescription: %s\nDeadline: %s",
 
         # Buttons
         "btn_complete": "Mark as Completed",

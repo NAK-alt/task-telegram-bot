@@ -122,7 +122,6 @@ async def assign_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "task_assigned",
         lang,
         f"@{target_username}",
-        task["task_id"],
         task_description,
         dl_str,
         user.first_name
@@ -155,9 +154,10 @@ async def grouptasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         dl_str = format_dt(task.get("deadline"))
 
         assignee = f"@{task['assigned_to_username']}" if task.get("assigned_to_username") else "Unassigned"
-        lines.append(f"• [{task['task_id']}] {assignee} - {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}")
+        lines.append(f"• {assignee} - {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}")
 
-        btn_text = f"✓ {t('btn_complete', lang)} #{task['task_id']}"
+        title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
+        btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
         keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
 
     reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
@@ -188,6 +188,6 @@ async def complete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if completed:
         cr_str = format_dt(completed.get("created_at"))
         cm_str = format_dt(completed.get("completed_at"))
-        await target_msg.reply_text(t("task_completed_group", lang, task_id, user.first_name, cr_str, cm_str))
+        await target_msg.reply_text(t("task_completed_group", lang, user.first_name, cr_str, cm_str))
     else:
         await target_msg.reply_text(t("todo_not_found", lang))

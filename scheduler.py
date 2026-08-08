@@ -50,7 +50,6 @@ async def check_deadline_reminders_job(context: ContextTypes.DEFAULT_TYPE) -> No
                 "group_reminder_alert",
                 lang,
                 assignee,
-                task_id,
                 task.get("title", ""),
                 dl_str
             )
@@ -71,7 +70,6 @@ async def check_deadline_reminders_job(context: ContextTypes.DEFAULT_TYPE) -> No
             msg = t(
                 "private_reminder_alert",
                 lang,
-                task_id,
                 task.get("title", ""),
                 dl_str
             )
@@ -117,7 +115,7 @@ async def daily_briefing_job(context: ContextTypes.DEFAULT_TYPE) -> None:
                     if dl_val.tzinfo is None:
                         dl_val = pytz.utc.localize(dl_val)
                     dl_str = dl_val.astimezone(local_tz).strftime("%H:%M")
-                lines.append(f"• [{task['task_id']}] {task['title']} (Time: {dl_str})")
+                lines.append(f"• {task['title']} (Time: {dl_str})")
 
         briefing_text = "\n".join(lines)
 

@@ -91,7 +91,7 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
         dl_str = format_dt(deadline)
-        await target_msg.reply_text(t("todo_added", lang, task["task_id"], description, dl_str))
+        await target_msg.reply_text(t("todo_added", lang, description, dl_str))
 
     elif subcommand in ["list", "show"]:
         await show_personal_todos(update, context)
@@ -105,7 +105,7 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if completed:
             cr_str = format_dt(completed.get("created_at"))
             cm_str = format_dt(completed.get("completed_at"))
-            await target_msg.reply_text(t("todo_completed", lang, task_id, cr_str, cm_str))
+            await target_msg.reply_text(t("todo_completed", lang, cr_str, cm_str))
         else:
             await target_msg.reply_text(t("todo_not_found", lang))
     else:
@@ -148,10 +148,11 @@ async def show_personal_todos(update: Update, context: ContextTypes.DEFAULT_TYPE
             cr_str = format_dt(task.get("created_at"))
             dl_str = format_dt(task.get("deadline"))
 
-            line = f"• [{task['task_id']}] {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}"
+            line = f"• {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}"
             response_lines.append(line)
 
-            btn_text = f"✓ {t('btn_complete', lang)} #{task['task_id']}"
+            title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
+            btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
             keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_priv_{task['task_id']}")])
 
     # 2. Group Tasks Assigned to User
@@ -161,10 +162,11 @@ async def show_personal_todos(update: Update, context: ContextTypes.DEFAULT_TYPE
             cr_str = format_dt(task.get("created_at"))
             dl_str = format_dt(task.get("deadline"))
 
-            line = f"• [{task['task_id']}] {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}"
+            line = f"• {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}"
             response_lines.append(line)
 
-            btn_text = f"✓ {t('btn_complete', lang)} #{task['task_id']}"
+            title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
+            btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
             keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
 
     inline_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
@@ -197,7 +199,7 @@ async def private_done_button_callback(update: Update, context: ContextTypes.DEF
         if completed:
             cr_str = format_dt(completed.get("created_at"))
             cm_str = format_dt(completed.get("completed_at"))
-            await query.edit_message_text(t("todo_completed", lang, task_id, cr_str, cm_str))
+            await query.edit_message_text(t("todo_completed", lang, cr_str, cm_str))
         else:
             await query.edit_message_text(t("todo_not_found", lang))
     elif data.startswith("done_grp_"):
@@ -206,7 +208,7 @@ async def private_done_button_callback(update: Update, context: ContextTypes.DEF
         if completed:
             cr_str = format_dt(completed.get("created_at"))
             cm_str = format_dt(completed.get("completed_at"))
-            await query.edit_message_text(t("task_completed_group", lang, task_id, user.first_name, cr_str, cm_str))
+            await query.edit_message_text(t("task_completed_group", lang, user.first_name, cr_str, cm_str))
         else:
             await query.edit_message_text(t("todo_not_found", lang))
 
@@ -325,7 +327,7 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             deadline=deadline
         )
         dl_str = format_dt(deadline)
-        confirm_text = t("todo_added", lang, task["task_id"], draft["title"], dl_str)
+        confirm_text = t("todo_added", lang, draft["title"], dl_str)
     else:
         task = db.create_task(
             scope="group",
@@ -342,7 +344,6 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             "task_assigned",
             lang,
             f"@{draft.get('assigned_to_username')}",
-            task["task_id"],
             draft["title"],
             dl_str,
             user.first_name

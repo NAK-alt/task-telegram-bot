@@ -150,12 +150,12 @@ async def report_generate_callback(update: Update, context: ContextTypes.DEFAULT
 
                 if report_type == "staff":
                     target_staff = f"@{task['assigned_to_username']}" if task.get("assigned_to_username") else "Unassigned"
-                    line = f"{status_icon} [{task['task_id']}] {target_staff} - {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
+                    line = f"{status_icon} {target_staff} - {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
                 elif report_type == "self":
                     scope_tag = "(Personal)" if task.get("scope") == "private" else "(Assigned)"
-                    line = f"{status_icon} [{task['task_id']}] {scope_tag} {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
+                    line = f"{status_icon} {scope_tag} {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
                 else:
-                    line = f"{status_icon} [{task['task_id']}] {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
+                    line = f"{status_icon} {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
 
                 if task.get("status") == "completed":
                     line += f" | ✅ បញ្ចប់: {cm_str}"
