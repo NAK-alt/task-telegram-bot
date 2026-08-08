@@ -73,7 +73,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "todo_completed": "✅ **ភារកិច្ចផ្ទាល់ខ្លួនត្រូវបានកត់សម្គាល់ថាបានបញ្ចប់!**\n\n📅 **កាលបរិច្ឆេទបង្កើត៖** %s\n🎉 **កាលបរិច្ឆេទបញ្ចប់៖** %s",
         "todo_not_found": "⚠️ រកមិនឃើញភារកិច្ចដែលបានស្នើសុំ ឬភារកិច្ចនេះត្រូវបានបញ្ចប់រួចរាល់។",
         "all_tasks_empty": "✨ លោកអ្នកមិនមានភារកិច្ចផ្ទាល់ខ្លួន ឬភារកិច្ចដែលបានប្រគល់ជូនដែលកំពុងរង់ចាំនោះទេ។",
-        "prompt_add_options": "សូមជ្រើសរើសទម្រង់បន្ថែមភារកិច្ច៖\n\n1. ភារកិច្ចផ្ទាល់ខ្លួន៖\n/todo add <បរិយាយ> [HH:MM DD-MM-YYYY]\n\n2. ប្រគល់ជូនមន្ត្រីក្នុងក្រុម (សម្រាប់ប្រធាន)៖\n/assign @username <បរិយាយ> <HH:MM DD-MM-YYYY>",
+        "prompt_add_options": "សូមជ្រើសរើសទម្រង់បន្ថែមភារកិច្ច៖\n\n1. ភារកិច្ចផ្ទាល់ខ្លួន៖\n/todo add <បរិយាយ> [HH:MM || DD-MM-YYYY]\n\n2. ប្រគល់ជូនមន្ត្រីក្នុងក្រុម (សម្រាប់ប្រធាន)៖\n/assign @username <បរិយាយ> <HH:MM || DD-MM-YYYY>",
         "prompt_complete_help": "សូមចុចលើប៊ូតុងខាងក្រោម ដើម្បីកត់សម្គាល់ភារកិច្ចថាបានបញ្ចប់៖",
 
         # Tasks - Group Scope & Boss Member Checking
@@ -178,7 +178,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "todo_completed": "✅ **Personal task marked as completed!**\n\n📅 **Created:** %s\n🎉 **Completed:** %s",
         "todo_not_found": "⚠️ Requested task not found or already completed.",
         "all_tasks_empty": "✨ You currently have no pending personal or assigned tasks.",
-        "prompt_add_options": "How would you like to add a task?\n\n1. For Yourself (Personal To-Do):\n/todo add <description> [HH:MM DD-MM-YYYY]\n\n2. Delegate to Staff (Boss only):\n/assign @username <description> <HH:MM DD-MM-YYYY>",
+        "prompt_add_options": "How would you like to add a task?\n\n1. For Yourself (Personal To-Do):\n/todo add <description> [HH:MM || DD-MM-YYYY]\n\n2. Delegate to Staff (Boss only):\n/assign @username <description> <HH:MM || DD-MM-YYYY>",
         "prompt_complete_help": "Please select an assigned task below to complete:",
 
         # Tasks - Group Scope & Boss Member Checking
