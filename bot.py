@@ -36,7 +36,9 @@ from handlers.private import (
     todos_command,
     mytasks_command,
     membertasks_command,
+    delete_command,
     private_done_button_callback,
+    private_delete_button_callback,
     prompt_add_task_options,
     prompt_complete_assigned_task,
     add_task_type_callback,
@@ -106,6 +108,7 @@ def main() -> None:
     application.add_handler(CommandHandler("todos", todos_command))
     application.add_handler(CommandHandler("mytasks", mytasks_command))
     application.add_handler(CommandHandler("membertasks", membertasks_command))
+    application.add_handler(CommandHandler("delete", delete_command))
 
     # Group Scope Handlers
     application.add_handler(CommandHandler("assign", assign_command))
@@ -132,6 +135,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(navigation_callback_handler, pattern="^cb_nav_"))
     application.add_handler(CallbackQueryHandler(language_button_callback, pattern="^set_lang_"))
     application.add_handler(CallbackQueryHandler(private_done_button_callback, pattern="^done_"))
+    application.add_handler(CallbackQueryHandler(private_delete_button_callback, pattern="^del_task_"))
 
     # Generic Text Handler for Interactive Wizard
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, wizard_text_input_handler))

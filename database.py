@@ -121,10 +121,35 @@ def set_user_role(user_id: int, role: str) -> None:
     db.collection("users").document(str(user_id)).set({"role": role}, merge=True)
 
 
+ADMIN_USER_ID = 1079885088
+
+
 def is_boss(user_id: int) -> bool:
     """Check if user has boss (ប្រធាន) role."""
     role = get_user_role(user_id)
     return role == "boss"
+
+
+def is_admin_or_boss(user_id: int) -> bool:
+    """Check if user is Telegram ID 1079885088 or has Boss (ប្រធាន) role."""
+    return user_id == ADMIN_USER_ID or is_boss(user_id)
+
+
+def delete_task(task_id: str, requesting_user_id: int) -> bool:
+    """
+    Permanently delete a task from Firestore.
+    Allowed ONLY for Boss (ប្រធាន) or Telegram Admin ID 1079885088.
+    Removes task completely from all task lists and reports for both Boss and Officers.
+    """
+    if not is_admin_or_boss(requesting_user_id):
+        return False
+    db = get_db()
+    doc_ref = db.collection("tasks").document(task_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        return False
+    doc_ref.delete()
+    return True
 
 
 def get_user_language(user_id: int) -> str:

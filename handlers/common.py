@@ -177,12 +177,22 @@ async def register_bot_commands(application) -> None:
         logger.error(f"Failed to register native bot commands: {e}")
 
 
+ADMIN_USER_ID = 1079885088
+
+
 async def prompt_role_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send Inline Keyboard asking user to select role: ប្រធានការិយាល័យ or មន្ត្រី."""
     chat = update.effective_chat
-    if not chat:
+    user = update.effective_user
+    if not chat or not user:
         return
     lang = db.get_chat_language(chat.id)
+
+    if user.id != ADMIN_USER_ID:
+        if update.effective_message:
+            await update.effective_message.reply_text(t("unauthorized_admin", lang))
+        return
+
     keyboard = [
         [
             InlineKeyboardButton(t("btn_role_boss", lang), callback_data="set_role_boss"),
@@ -190,32 +200,36 @@ async def prompt_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(t("select_role", lang), reply_markup=reply_markup)
+    await update.effective_message.reply_text(t("select_role", lang), reply_markup=reply_markup)
 
 
 async def role_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /role command to switch user role."""
+    """Handle /role command to switch user role (Restricted strictly to Telegram ID 1079885088)."""
     await prompt_role_selection(update, context)
 
 
 async def role_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Process inline button selection for role change."""
+    """Process inline button selection for role change (Restricted to ID 1079885088)."""
     query = update.callback_query
-    if not query:
+    user = update.effective_user
+    chat = update.effective_chat
+    if not query or not user:
+        return
+
+    lang = db.get_user_language(user.id)
+    if user.id != ADMIN_USER_ID:
+        await query.answer(t("unauthorized_admin", lang), show_alert=True)
         return
 
     await query.answer()
     data = query.data
-    chat = update.effective_chat
-    user = update.effective_user
 
-    if not data or not data.startswith("set_role_") or not user:
+    if not data or not data.startswith("set_role_"):
         return
 
     target_role = data.split("set_role_")[1]
     db.set_user_role(user.id, target_role)
 
-    lang = db.get_user_language(user.id)
     confirm_key = "role_selected_boss" if target_role == "boss" else "role_selected_staff"
     confirm_msg = t(confirm_key, lang)
 

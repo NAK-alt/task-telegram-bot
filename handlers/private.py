@@ -223,6 +223,81 @@ async def private_done_button_callback(update: Update, context: ContextTypes.DEF
             await query.edit_message_text(t("todo_not_found", lang))
 
 
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Boss / Admin Handler: Permanently delete a task by task_id.
+    Syntax: /delete <task_id>
+    Allowed ONLY for Boss (ប្រធាន) or Telegram Admin ID 1079885088.
+    """
+    user = update.effective_user
+    chat = update.effective_chat
+    target_msg = update.effective_message
+    if not user or not target_msg:
+        return
+
+    is_private = (chat.type == "private") if chat else True
+    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
+
+    if not db.is_admin_or_boss(user.id):
+        await target_msg.reply_text(t("unauthorized_boss_only", lang))
+        return
+
+    args = context.args or []
+    if not args:
+        prompt_text = (
+            "សូមបញ្ចូលពាក្យបញ្ជាដើម្បីលុបភារកិច្ច៖\n/delete <លេខសម្គាល់ភារកិច្ច>\n\nឧទាហរណ៍៖ /delete b682399d"
+            if lang == "km" else
+            "Please specify task ID to delete:\n/delete <task_id>\n\nExample: /delete b682399d"
+        )
+        await target_msg.reply_text(prompt_text)
+        return
+
+    task_id = args[0]
+    deleted = db.delete_task(task_id, user.id)
+
+    if deleted:
+        confirm_text = (
+            f"🗑️ **ភារកិច្ច #{task_id} ត្រូវបានលុបចេញពីប្រព័ន្ធ និងរបាយការណ៍ទាំងអស់ដោយជោគជ័យ!**"
+            if lang == "km" else
+            f"🗑️ **Task #{task_id} has been permanently deleted from all reports and lists!**"
+        )
+        await target_msg.reply_text(confirm_text)
+    else:
+        await target_msg.reply_text(t("todo_not_found", lang))
+
+
+async def private_delete_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle inline button clicks to delete tasks (Boss / Admin only)."""
+    query = update.callback_query
+    user = update.effective_user
+    chat = update.effective_chat
+    if not query or not user:
+        return
+
+    is_private = (chat.type == "private") if chat else True
+    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
+
+    if not db.is_admin_or_boss(user.id):
+        await query.answer(t("unauthorized_boss_only", lang), show_alert=True)
+        return
+
+    await query.answer()
+    data = query.data
+
+    if data.startswith("del_task_"):
+        task_id = data.replace("del_task_", "")
+        deleted = db.delete_task(task_id, user.id)
+        if deleted:
+            confirm_text = (
+                f"🗑️ **ភារកិច្ច #{task_id} ត្រូវបានលុបចេញពីប្រព័ន្ធ និងរបាយការណ៍ទាំងអស់!**"
+                if lang == "km" else
+                f"🗑️ **Task #{task_id} deleted from all system records and reports!**"
+            )
+            await query.edit_message_text(confirm_text)
+        else:
+            await query.edit_message_text(t("todo_not_found", lang))
+
+
 async def prompt_add_task_options(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt user with interactive inline choice for adding task (Self vs Staff in private, Staff assignment only in group)."""
     user = update.effective_user
@@ -696,9 +771,10 @@ async def membertasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE
             dl_str = format_dt(task.get("deadline"), lang=lang)
             response_lines.append(f"  ⏳ **{task['title']}** (កំណត់: {dl_str})")
 
-            title_snippet = task['title'][:20] + ('...' if len(task['title']) > 20 else '')
-            btn_text = f"✓ {staff_name}: {title_snippet}"
-            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
+            title_snippet = task['title'][:18] + ('...' if len(task['title']) > 18 else '')
+            btn_comp = InlineKeyboardButton(f"✓ {title_snippet}", callback_data=f"done_grp_{task['task_id']}")
+            btn_del = InlineKeyboardButton(f"🗑️ លុប #{task['task_id']}", callback_data=f"del_task_{task['task_id']}")
+            keyboard.append([btn_comp, btn_del])
         response_lines.append("")
 
     inline_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
