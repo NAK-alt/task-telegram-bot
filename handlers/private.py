@@ -6,7 +6,7 @@ Includes step-by-step interactive wizard with quick deadline presets and creatio
 
 import datetime
 import pytz
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
