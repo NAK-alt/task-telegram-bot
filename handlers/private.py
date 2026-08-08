@@ -255,13 +255,56 @@ async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_T
         await query.edit_message_text(t("wizard_prompt_staff_task", lang))
 
 
+def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[datetime.datetime]:
+    """Parse flexible date/time strings into UTC datetime."""
+    text = date_str.strip()
+    if text.lower() in ["none", "no", "0", "គ្មាន", "skip", "n/a"]:
+        return None
+    local_tz = pytz.timezone(tz_name)
+    now = datetime.datetime.now(local_tz)
+
+    formats = [
+        "%Y-%m-%d %H:%M",
+        "%d/%m/%Y %H:%M",
+        "%d-%m-%Y %H:%M",
+        "%Y/%m/%d %H:%M",
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+    ]
+
+    for fmt in formats:
+        try:
+            dt = datetime.datetime.strptime(text, fmt)
+            if " " not in fmt:
+                dt = dt.replace(hour=17, minute=0, second=0)
+            local_dt = local_tz.localize(dt)
+            return local_dt.astimezone(pytz.utc)
+        except ValueError:
+            continue
+
+    # Try HH:MM for today/tomorrow
+    try:
+        dt_time = datetime.datetime.strptime(text, "%H:%M")
+        local_dt = now.replace(hour=dt_time.hour, minute=dt_time.minute, second=0, microsecond=0)
+        if local_dt <= now:
+            local_dt += datetime.timedelta(days=1)
+        return local_dt.astimezone(pytz.utc)
+    except ValueError:
+        pass
+
+    return None
+
+
 async def handle_task_creation_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
     Check if user is currently in a task creation draft state.
+    Handles both Step 1 (Title/Assignee) and Step 2 (Custom Deadline Text Input).
     Returns True if handled, False otherwise.
     """
     user = update.effective_user
     msg = update.message
+    chat = update.effective_chat
     if not user or not msg or not msg.text:
         return False
 
@@ -272,6 +315,55 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
     lang = db.get_user_language(user.id)
     text = msg.text.strip()
 
+    # Step 2: User is typing custom deadline text because title was already collected
+    if draft.get("step") == "awaiting_deadline":
+        deadline = parse_flexible_datetime(text)
+        if deadline is None and text.lower() not in ["none", "no", "0", "គ្មាន", "skip", "n/a"]:
+            error_msg = (
+                "⚠️ ទម្រង់កាលបរិច្ឆេទមិនត្រឹមត្រូវ។ សូមវាយបញ្ចូលទម្រង់៖ YYYY-MM-DD HH:MM (ឧទាហរណ៍៖ 2026-08-20 17:00 ឬ 20/08/2026) ឬវាយ 'គ្មាន' ប្រសិនបើគ្មានកាលបរិច្ឆេទកំណត់។"
+                if lang == "km" else
+                "⚠️ Invalid date format. Please use: YYYY-MM-DD HH:MM (e.g. 2026-08-20 17:00 or 20/08/2026) or type 'none' for no deadline."
+            )
+            await msg.reply_text(error_msg)
+            return True
+
+        # Save to database
+        if draft["scope"] == "private":
+            task = db.create_task(
+                scope="private",
+                title=draft["title"],
+                user_id=user.id,
+                deadline=deadline
+            )
+            dl_str = format_dt(deadline)
+            confirm_text = t("todo_added", lang, task["task_id"], draft["title"], dl_str)
+        else:
+            task = db.create_task(
+                scope="group",
+                title=draft["title"],
+                user_id=user.id,
+                group_id=chat.id if (chat and chat.type != "private") else user.id,
+                assigned_to_username=draft.get("assigned_to_username"),
+                assigned_by_id=user.id,
+                assigned_by_username=user.username or user.first_name,
+                deadline=deadline
+            )
+            dl_str = format_dt(deadline)
+            confirm_text = t(
+                "task_assigned",
+                lang,
+                f"@{draft.get('assigned_to_username')}",
+                task["task_id"],
+                draft["title"],
+                dl_str,
+                user.first_name
+            )
+
+        context.user_data.pop("task_draft", None)
+        await msg.reply_text(confirm_text)
+        return True
+
+    # Step 1: User is typing title (and assignee if staff assignment)
     if draft["scope"] == "private":
         draft["title"] = text
     else:  # group / staff assignment
@@ -282,7 +374,9 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
         draft["assigned_to_username"] = tokens[0].lstrip("@")
         draft["title"] = tokens[1]
 
-    # Present Quick Deadline Presets Inline Keyboard
+    draft["step"] = "awaiting_deadline"
+
+    # Present Quick Deadline Presets Inline Keyboard + Custom Input Prompt
     dl_keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(t("btn_dl_today_17", lang), callback_data="dl_preset_today_17"),
