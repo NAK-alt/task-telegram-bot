@@ -1,0 +1,8 @@
+.env
+firebase_credentials.json
+firebase_credentials.json.json
+*.pyc
+__pycache__/
+*.xlsx
+.venv/
+venv/
