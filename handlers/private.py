@@ -33,9 +33,9 @@ def parse_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[d
 
 
 def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE, lang: str = "km") -> str:
-    """Format Firestore/Python datetime object into local timezone string HH:MM || DD-MM-YYYY or End of Day || DD-MM-YYYY."""
+    """Format Firestore/Python datetime object into clean local timezone string HH:MM (DD/MM/YYYY)."""
     if not dt_val:
-        return "N/A"
+        return "គ្មាន" if lang == "km" else "None"
     try:
         local_tz = pytz.timezone(tz_name)
         if hasattr(dt_val, "to_datetime"):
@@ -45,10 +45,10 @@ def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE, lang: str 
         local_dt = dt_val.astimezone(local_tz)
         if local_dt.hour == 23 and local_dt.minute == 59:
             eod_str = "ត្រឹមចុងថ្ងៃ" if lang == "km" else "End of Day"
-            return f"{eod_str} || {local_dt.strftime('%d-%m-%Y')}"
-        return local_dt.strftime("%H:%M || %d-%m-%Y")
+            return f"{eod_str} ({local_dt.strftime('%d/%m/%Y')})"
+        return local_dt.strftime("%H:%M (%d/%m/%Y)")
     except Exception:
-        return "N/A"
+        return "គ្មាន" if lang == "km" else "None"
 
 
 async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -147,28 +147,28 @@ async def show_personal_todos(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
     role = db.get_user_role(user.id) or "staff"
 
-    # Get ALL tasks (pending and completed, personal to-dos and assigned group tasks)
     all_tasks = db.get_all_tasks_for_staff(user.id, username=user.username or "")
-
     main_kb = get_main_keyboard(lang, is_private=is_private, role=role)
 
     if not all_tasks:
         await target_msg.reply_text(t("all_tasks_empty", lang), reply_markup=main_kb)
         return
 
-    response_lines = [t("todo_list_header", lang).strip()]
+    header_title = "📋 **បញ្ជីភារកិច្ចទាំងអស់៖**\n" if lang == "km" else "📋 **All Tasks Overview:**\n"
+    response_lines = [header_title.strip()]
     keyboard = []
 
     for task in all_tasks:
         is_completed = (task.get("status") == "completed")
-        status_icon = "✅ [បានបញ្ចប់]" if is_completed else "⏳ [កំពុងរង់ចាំ]"
-        cr_str = format_dt(task.get("created_at"), lang=lang)
+        status_icon = "✅" if is_completed else "⏳"
         dl_str = format_dt(task.get("deadline"), lang=lang)
 
-        line = f"{status_icon} • {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
-        if is_completed and task.get("completed_at"):
+        if is_completed:
             cm_str = format_dt(task.get("completed_at"), lang=lang)
-            line += f" | 🎉 បញ្ចប់: {cm_str}"
+            line = f"{status_icon} **{task['title']}** (បានបញ្ចប់: {cm_str})"
+        else:
+            line = f"{status_icon} **{task['title']}** (កំណត់: {dl_str})"
+
         response_lines.append(line)
 
         # Only add completion button if the task is STILL PENDING
@@ -179,9 +179,8 @@ async def show_personal_todos(update: Update, context: ContextTypes.DEFAULT_TYPE
             keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"{cb_prefix}{task['task_id']}")])
 
     inline_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-    
-    # Send all tasks list and inline completion buttons for pending ones
-    await target_msg.reply_text("\n\n".join(response_lines), reply_markup=main_kb)
+
+    await target_msg.reply_text("\n".join(response_lines), reply_markup=main_kb)
     if inline_markup:
         await target_msg.reply_text("--- Action Panel ---", reply_markup=inline_markup)
 
@@ -575,7 +574,6 @@ async def prompt_complete_assigned_task(update: Update, context: ContextTypes.DE
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
     role = db.get_user_role(user.id) or "staff"
 
-    # Get ONLY pending tasks
     private_tasks = db.get_private_tasks(user.id)
     assigned_tasks = db.get_tasks_assigned_to_user(username=user.username or "", user_id=user.id)
 
@@ -583,50 +581,39 @@ async def prompt_complete_assigned_task(update: Update, context: ContextTypes.DE
 
     if not private_tasks and not assigned_tasks:
         empty_msg = (
-            "✨ មិនមានភារកិច្ចដែលកំពុងរង់ចាំសម្រាប់បញ្ចប់នោះទេ។"
+            "✨ មិនមានភារកិច្ចដែលកំពុងរង់ចាំនោះទេ។"
             if lang == "km" else
-            "✨ You have no pending tasks to complete."
+            "✨ You have no pending tasks."
         )
         await target_msg.reply_text(empty_msg, reply_markup=main_kb)
         return
 
     header_text = (
-        "✓ **បញ្ជីភារកិច្ចដែលកំពុងរង់ចាំ (សូមចុចប៊ូតុងខាងក្រោមដើម្បីបញ្ចប់)៖**\n"
+        "✓ **សូមជ្រើសរើសភារកិច្ចដែលត្រូវបញ្ចប់៖**\n"
         if lang == "km" else
-        "✓ **Pending Tasks (Tap button below to complete):**\n"
+        "✓ **Select a task to complete:**\n"
     )
     response_lines = [header_text.strip()]
     keyboard = []
 
-    if private_tasks:
-        for task in private_tasks:
-            cr_str = format_dt(task.get("created_at"), lang=lang)
-            dl_str = format_dt(task.get("deadline"), lang=lang)
+    pending_all = list(private_tasks)
+    for t_item in assigned_tasks:
+        if t_item not in pending_all:
+            pending_all.append(t_item)
 
-            line = f"⏳ • {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
-            response_lines.append(line)
+    for task in pending_all:
+        dl_str = format_dt(task.get("deadline"), lang=lang)
+        line = f"⏳ **{task['title']}** (កំណត់: {dl_str})"
+        response_lines.append(line)
 
-            title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
-            btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
-            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_priv_{task['task_id']}")])
-
-    if assigned_tasks:
-        if private_tasks:
-            response_lines.append(f"\n{t('my_tasks_header', lang).strip()}")
-        for task in assigned_tasks:
-            cr_str = format_dt(task.get("created_at"), lang=lang)
-            dl_str = format_dt(task.get("deadline"), lang=lang)
-
-            line = f"⏳ • {task['title']}\n  📅 បង្កើត: {cr_str} | ⏰ កំណត់: {dl_str}"
-            response_lines.append(line)
-
-            title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
-            btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
-            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
+        title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
+        btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
+        cb_prefix = "done_priv_" if task.get("scope") == "private" else "done_grp_"
+        keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"{cb_prefix}{task['task_id']}")])
 
     inline_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
 
-    await target_msg.reply_text("\n\n".join(response_lines), reply_markup=main_kb)
+    await target_msg.reply_text("\n".join(response_lines), reply_markup=main_kb)
     if inline_markup:
         await target_msg.reply_text("--- Action Panel ---", reply_markup=inline_markup)
 
