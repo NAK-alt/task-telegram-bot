@@ -152,6 +152,63 @@ def delete_task(task_id: str, requesting_user_id: int) -> bool:
     return True
 
 
+def delete_all_tasks(requesting_user_id: int) -> int:
+    """
+    Permanently delete ALL tasks from Firestore database.
+    Restricted strictly to Telegram Admin ID 1079885088.
+    Returns count of deleted task documents.
+    """
+    if requesting_user_id != ADMIN_USER_ID:
+        return 0
+    db = get_db()
+    docs = db.collection("tasks").stream()
+    count = 0
+    for doc in docs:
+        doc.reference.delete()
+        count += 1
+    return count
+
+
+def get_all_system_tasks() -> List[Dict[str, Any]]:
+    """Get every single task in the database (for Admin master management)."""
+    db = get_db()
+    docs = db.collection("tasks").stream()
+    return [doc.to_dict() for doc in docs]
+
+
+def get_task_by_id(task_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieve a task document by ID."""
+    db = get_db()
+    doc = db.collection("tasks").document(task_id).get()
+    if doc.exists:
+        return doc.to_dict()
+    return None
+
+
+def update_task_title(task_id: str, new_title: str, requesting_user_id: int) -> bool:
+    """Update task title. Restricted to Boss or Admin."""
+    if not is_admin_or_boss(requesting_user_id):
+        return False
+    db = get_db()
+    doc_ref = db.collection("tasks").document(task_id)
+    if not doc_ref.get().exists:
+        return False
+    doc_ref.update({"title": new_title})
+    return True
+
+
+def update_task_deadline(task_id: str, new_deadline: Optional[datetime.datetime], requesting_user_id: int) -> bool:
+    """Update task deadline. Restricted to Boss or Admin."""
+    if not is_admin_or_boss(requesting_user_id):
+        return False
+    db = get_db()
+    doc_ref = db.collection("tasks").document(task_id)
+    if not doc_ref.get().exists:
+        return False
+    doc_ref.update({"deadline": new_deadline, "reminded": False})
+    return True
+
+
 def get_user_language(user_id: int) -> str:
     """Retrieve user preferred language."""
     db = get_db()

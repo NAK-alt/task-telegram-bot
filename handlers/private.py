@@ -463,7 +463,7 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
 
 
 async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Process calendar grid navigation, date selection, and time slot selection."""
+    """Process inline calendar date picker callbacks."""
     query = update.callback_query
     user = update.effective_user
     chat = update.effective_chat
@@ -472,12 +472,37 @@ async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAUL
 
     await query.answer()
     data = query.data
-    lang = db.get_user_language(user.id) if (chat and chat.type == "private") else db.get_chat_language(chat.id if chat else user.id)
+    is_private = (chat.type == "private") if chat else True
+    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
+
+    # Handle Admin Editing Deadline flow if active
+    editing_dl_id = context.user_data.get("editing_dl_task_id")
+    if editing_dl_id:
+        if data.startswith("cal_day_"):
+            date_part = data.replace("cal_day_", "")
+            if date_part == "none":
+                db.update_task_deadline(editing_dl_id, None, user.id)
+                context.user_data.pop("editing_dl_task_id", None)
+                await query.edit_message_text(f"✅ **កាលបរិច្ឆេទកំណត់នៃភារកិច្ច #{editing_dl_id} ត្រូវបានលុបចេញ (គ្មានការកំណត់)!**")
+                return
+            else:
+                context.user_data["editing_dl_date"] = date_part
+                time_kb = build_time_picker_keyboard(date_part, lang=lang)
+                await query.edit_message_text(f"📅 **កាលបរិច្ឆេទ៖ {date_part}**\n\n⏰ **សូមជ្រើសរើសម៉ោងកំណត់៖**", reply_markup=time_kb)
+                return
+        elif data.startswith("cal_time_"):
+            raw_val = data.replace("cal_time_", "")
+            date_str, time_str = raw_val.split("_")
+            full_dt_str = f"{date_str} {time_str}"
+            deadline = parse_flexible_datetime(full_dt_str)
+            db.update_task_deadline(editing_dl_id, deadline, user.id)
+            context.user_data.pop("editing_dl_task_id", None)
+            context.user_data.pop("editing_dl_date", None)
+            dl_str = format_dt(deadline, lang=lang)
+            await query.edit_message_text(f"✅ **កាលបរិច្ឆេទកំណត់នៃភារកិច្ច #{editing_dl_id} ត្រូវបានប្តូរជា៖ {dl_str}**")
+            return
 
     draft = context.user_data.get("task_draft")
-    if data == "cal_ignore":
-        return
-
     if not draft or "title" not in draft:
         await query.edit_message_text(t("error_occurred", lang))
         return
@@ -535,8 +560,7 @@ async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAUL
 
 async def handle_task_creation_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
-    Check if user is currently in a task creation draft state.
-    Handles both Step 1 (Title/Assignee) and Step 2 (Interactive Calendar & Text Input).
+    Check if user is currently in a task creation draft state or task editing state.
     Returns True if handled, False otherwise.
     """
     user = update.effective_user

@@ -54,7 +54,10 @@ from handlers.group import (
 from handlers.report import (
     report_command,
     report_type_callback,
-    report_generate_callback
+    report_generate_callback,
+    clear_all_command,
+    report_clear_all_callback,
+    report_admin_manage_callback
 )
 
 # Configure logging
@@ -109,6 +112,8 @@ def main() -> None:
     application.add_handler(CommandHandler("mytasks", mytasks_command))
     application.add_handler(CommandHandler("membertasks", membertasks_command))
     application.add_handler(CommandHandler("delete", delete_command))
+    application.add_handler(CommandHandler("clearall", clear_all_command))
+    application.add_handler(CommandHandler("deleteall", clear_all_command))
 
     # Group Scope Handlers
     application.add_handler(CommandHandler("assign", assign_command))
@@ -129,6 +134,8 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(calendar_callback_handler, pattern="^cal_"))
     application.add_handler(CallbackQueryHandler(report_type_callback, pattern="^rpt_type_"))
     application.add_handler(CallbackQueryHandler(report_generate_callback, pattern="^rpt_fmt_"))
+    application.add_handler(CallbackQueryHandler(report_clear_all_callback, pattern="^rpt_clear_all_"))
+    application.add_handler(CallbackQueryHandler(report_admin_manage_callback, pattern="^(rpt_admin_manage|edit_task_menu_|edit_title_|edit_dl_)"))
     application.add_handler(CallbackQueryHandler(add_task_type_callback, pattern="^add_type_"))
     application.add_handler(CallbackQueryHandler(deadline_preset_callback, pattern="^dl_preset_"))
     application.add_handler(CallbackQueryHandler(role_button_callback, pattern="^set_role_"))
