@@ -462,6 +462,37 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
         await update.effective_message.reply_text(confirm_text)
 
 
+async def notify_task_edited(context: ContextTypes.DEFAULT_TYPE, task: Dict[str, Any], editor_user, change_type: str, new_value: str) -> None:
+    """Send notification to assigned staff member / group when task is edited by Boss/Admin."""
+    if not task:
+        return
+    assigned_to_id = task.get("assigned_to_id")
+    group_id = task.get("group_id")
+    editor_name = editor_user.first_name if editor_user else "ប្រធាន/Admin"
+    
+    change_desc = f"📌 **ចំណងជើងថ្មី៖** `{new_value}`" if change_type == "title" else f"⏰ **កាលបរិច្ឆេទកំណត់ថ្មី៖** `{new_value}`"
+    
+    msg_text = (
+        f"📝 **ការជូនដំណឹង៖ ភារកិច្ចត្រូវ​បានកែប្រែដោយ {editor_name}!**\n\n"
+        f"📌 **ភារកិច្ច (#`{task['task_id']}`)៖** {task['title']}\n"
+        f"{change_desc}"
+    )
+
+    # 1. Direct private notification to assignee if ID exists
+    if assigned_to_id and assigned_to_id != editor_user.id:
+        try:
+            await context.bot.send_message(chat_id=assigned_to_id, text=msg_text)
+        except Exception as e:
+            logger.warning(f"Could not send private edit notification to user {assigned_to_id}: {e}")
+
+    # 2. Group chat notification if group task
+    if group_id:
+        try:
+            await context.bot.send_message(chat_id=group_id, text=msg_text)
+        except Exception as e:
+            logger.warning(f"Could not send group edit notification to group {group_id}: {e}")
+
+
 async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Process inline calendar date picker callbacks."""
     query = update.callback_query
@@ -475,15 +506,18 @@ async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAUL
     is_private = (chat.type == "private") if chat else True
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
 
-    # Handle Admin Editing Deadline flow if active
+    # Handle Admin/Boss Editing Deadline flow if active
     editing_dl_id = context.user_data.get("editing_dl_task_id")
     if editing_dl_id:
+        task_before = db.get_task_by_id(editing_dl_id)
         if data.startswith("cal_day_"):
             date_part = data.replace("cal_day_", "")
             if date_part == "none":
                 db.update_task_deadline(editing_dl_id, None, user.id)
                 context.user_data.pop("editing_dl_task_id", None)
                 await query.edit_message_text(f"✅ **កាលបរិច្ឆេទកំណត់នៃភារកិច្ច #{editing_dl_id} ត្រូវបានលុបចេញ (គ្មានការកំណត់)!**")
+                if task_before:
+                    await notify_task_edited(context, task_before, user, "deadline", "គ្មាន (No Deadline)")
                 return
             else:
                 context.user_data["editing_dl_date"] = date_part
@@ -500,6 +534,8 @@ async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAUL
             context.user_data.pop("editing_dl_date", None)
             dl_str = format_dt(deadline, lang=lang)
             await query.edit_message_text(f"✅ **កាលបរិច្ឆេទកំណត់នៃភារកិច្ច #{editing_dl_id} ត្រូវបានប្តូរជា៖ {dl_str}**")
+            if task_before:
+                await notify_task_edited(context, task_before, user, "deadline", dl_str)
             return
 
     draft = context.user_data.get("task_draft")
@@ -568,6 +604,43 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
     chat = update.effective_chat
     if not user or not msg or not msg.text:
         return False
+
+    lang = db.get_user_language(user.id)
+    text = msg.text.strip()
+
+    # Admin/Boss editing task title flow
+    editing_id = context.user_data.pop("editing_task_id", None)
+    if editing_id:
+        task_before = db.get_task_by_id(editing_id)
+        updated = db.update_task_title(editing_id, text, user.id)
+        if updated:
+            reply_text = (
+                f"✅ **ចំណងជើងភារកិច្ច/របាយការណ៍ #${editing_id} ត្រូវបានកែប្រែជា៖**\n`{text}`"
+                if lang == "km" else
+                f"✅ **Task #${editing_id} title updated to:**\n`{text}`"
+            )
+            await msg.reply_text(reply_text)
+            if task_before:
+                await notify_task_edited(context, task_before, user, "title", text)
+        else:
+            await msg.reply_text(t("todo_not_found", lang))
+        return True
+
+    # Admin/Boss editing deadline custom time text flow
+    editing_dl_id = context.user_data.get("editing_dl_task_id")
+    if editing_dl_id:
+        task_before = db.get_task_by_id(editing_dl_id)
+        base_date = context.user_data.get("editing_dl_date")
+        deadline = parse_flexible_datetime(text, base_date=base_date)
+        if deadline:
+            db.update_task_deadline(editing_dl_id, deadline, user.id)
+            context.user_data.pop("editing_dl_task_id", None)
+            context.user_data.pop("editing_dl_date", None)
+            dl_str = format_dt(deadline, lang=lang)
+            await msg.reply_text(f"✅ **កាលបរិច្ឆេទកំណត់នៃភារកិច្ច #{editing_dl_id} ត្រូវបានប្តូរជា៖ {dl_str}**")
+            if task_before:
+                await notify_task_edited(context, task_before, user, "deadline", dl_str)
+            return True
 
     draft = context.user_data.get("task_draft")
     if not draft:
