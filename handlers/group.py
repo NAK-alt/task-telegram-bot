@@ -16,18 +16,22 @@ from config import DEFAULT_TIMEZONE
 
 
 def parse_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[datetime.datetime]:
-    """Parse date/time string in format 'YYYY-MM-DD HH:MM' into UTC datetime."""
-    try:
-        local_tz = pytz.timezone(tz_name)
-        dt = datetime.datetime.strptime(date_str.strip(), "%Y-%m-%d %H:%M")
-        local_dt = local_tz.localize(dt)
-        return local_dt.astimezone(pytz.utc)
-    except ValueError:
-        return None
+    """Parse date/time string into UTC datetime."""
+    text = date_str.strip()
+    local_tz = pytz.timezone(tz_name)
+    formats = ["%H:%M %d-%m-%Y", "%H:%M %d/%m/%Y", "%Y-%m-%d %H:%M", "%d-%m-%Y %H:%M", "%d/%m/%Y %H:%M"]
+    for fmt in formats:
+        try:
+            dt = datetime.datetime.strptime(text, fmt)
+            local_dt = local_tz.localize(dt)
+            return local_dt.astimezone(pytz.utc)
+        except ValueError:
+            continue
+    return None
 
 
 def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE) -> str:
-    """Format Firestore/Python datetime object into local timezone string YYYY-MM-DD HH:MM."""
+    """Format Firestore/Python datetime object into local timezone string HH:MM DD-MM-YYYY."""
     if not dt_val:
         return "N/A"
     try:
@@ -36,7 +40,7 @@ def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE) -> str:
             dt_val = dt_val.to_datetime()
         if dt_val.tzinfo is None:
             dt_val = pytz.utc.localize(dt_val)
-        return dt_val.astimezone(local_tz).strftime("%Y-%m-%d %H:%M")
+        return dt_val.astimezone(local_tz).strftime("%H:%M %d-%m-%Y")
     except Exception:
         return "N/A"
 
