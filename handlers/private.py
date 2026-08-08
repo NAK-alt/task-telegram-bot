@@ -376,20 +376,8 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
 
     draft["step"] = "awaiting_deadline"
 
-    # Present Quick Deadline Presets Inline Keyboard + Custom Input Prompt
-    dl_keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(t("btn_dl_today_17", lang), callback_data="dl_preset_today_17"),
-            InlineKeyboardButton(t("btn_dl_tomorrow_09", lang), callback_data="dl_preset_tomorrow_09"),
-        ],
-        [
-            InlineKeyboardButton(t("btn_dl_monday_09", lang), callback_data="dl_preset_monday_09"),
-            InlineKeyboardButton(t("btn_dl_none", lang), callback_data="dl_preset_none"),
-        ]
-    ])
-
     prompt_text = t("wizard_prompt_deadline", lang, draft["title"])
-    await msg.reply_text(prompt_text, reply_markup=dl_keyboard)
+    await msg.reply_text(prompt_text)
     return True
 
 
