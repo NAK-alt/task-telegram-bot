@@ -620,8 +620,9 @@ async def prompt_complete_assigned_task(update: Update, context: ContextTypes.DE
 
 async def membertasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Boss Persona Handler: Inspect all tasks assigned to a specific team member.
-    Syntax: /membertasks @username
+    Boss Persona Handler: Inspect all tasks assigned to team members.
+    Automatically displays staff task summary if no username argument is passed.
+    Syntax: /membertasks [@username]
     """
     user = update.effective_user
     chat = update.effective_chat
@@ -629,7 +630,6 @@ async def membertasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not user or not target_msg:
         return
 
-    from handlers.common import get_main_keyboard
     is_private = (chat.type == "private") if chat else True
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
     role = db.get_user_role(user.id) or "staff"
@@ -642,32 +642,66 @@ async def membertasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     args = context.args or []
 
-    if not args:
-        await target_msg.reply_text(t("prompt_member_tasks", lang), reply_markup=main_kb)
+    # Filter by specific username if argument passed
+    if args:
+        target_mention = args[0]
+        target_username = target_mention.lstrip("@").lower()
+        tasks = db.get_tasks_assigned_to_user(username=target_username)
+
+        if not tasks:
+            await target_msg.reply_text(t("member_tasks_empty", lang, f"@{target_username}"), reply_markup=main_kb)
+            return
+
+        lines = [f"👥 **បញ្ជីភារកិច្ចមន្ត្រី @{target_username}៖**\n"]
+        keyboard = []
+        for task in tasks:
+            dl_str = format_dt(task.get("deadline"), lang=lang)
+            lines.append(f"⏳ **{task['title']}** (កំណត់: {dl_str})")
+            title_snippet = task['title'][:25] + ('...' if len(task['title']) > 25 else '')
+            btn_text = f"✓ {t('btn_complete', lang)}: {title_snippet}"
+            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
+
+        inline_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        await target_msg.reply_text("\n".join(lines), reply_markup=main_kb)
+        if inline_markup:
+            await target_msg.reply_text("--- Action Panel ---", reply_markup=inline_markup)
         return
 
-    target_mention = args[0]
-    target_username = target_mention.lstrip("@")
+    # No argument passed: Automatically retrieve ALL staff assignments for the boss!
+    assigned_tasks = db.get_all_assigned_by_boss(user.id)
+    pending_tasks = [t_item for t_item in assigned_tasks if t_item.get("status") == "pending"]
 
-    tasks = db.get_tasks_assigned_to_user(username=target_username)
-
-    if not tasks:
-        await target_msg.reply_text(t("member_tasks_empty", lang, f"@{target_username}"), reply_markup=main_kb)
+    if not pending_tasks:
+        empty_msg = (
+            "✨ មិនទាន់មានភារកិច្ចដែលបានប្រគល់ជូនមន្ត្រីដែលកំពុងរង់ចាំនៅឡើយទេ។"
+            if lang == "km" else
+            "✨ No pending staff assignments found."
+        )
+        await target_msg.reply_text(empty_msg, reply_markup=main_kb)
         return
 
-    lines = [t("member_tasks_header", lang, f"@{target_username}")]
+    # Group tasks by staff username
+    by_staff = {}
+    for task in pending_tasks:
+        staff_name = f"@{task['assigned_to_username']}" if task.get("assigned_to_username") else "Unassigned"
+        by_staff.setdefault(staff_name, []).append(task)
+
+    header = "👥 **បញ្ជីភារកិច្ចមន្ត្រីទាំងអស់ (Staff Assignments)៖**\n" if lang == "km" else "👥 **Staff Assignments Summary:**\n"
+    response_lines = [header.strip()]
     keyboard = []
 
-    for task in tasks:
-        cr_str = format_dt(task.get("created_at"))
-        dl_str = format_dt(task.get("deadline"))
+    for staff_name, s_tasks in by_staff.items():
+        response_lines.append(f"👤 **{staff_name}** ({len(s_tasks)} ភារកិច្ច)៖")
+        for task in s_tasks:
+            dl_str = format_dt(task.get("deadline"), lang=lang)
+            response_lines.append(f"  ⏳ **{task['title']}** (កំណត់: {dl_str})")
 
-        lines.append(f"• [{task['task_id']}] {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}")
+            title_snippet = task['title'][:20] + ('...' if len(task['title']) > 20 else '')
+            btn_text = f"✓ {staff_name}: {title_snippet}"
+            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
+        response_lines.append("")
 
-        btn_text = f"✓ {t('btn_complete', lang)} #{task['task_id']}"
-        keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"done_grp_{task['task_id']}")])
-
-    reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-    await target_msg.reply_text("\n".join(lines), reply_markup=main_kb)
-    if reply_markup:
-        await target_msg.reply_text("--- Member Tasks Panel ---", reply_markup=reply_markup)
+    inline_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+    await target_msg.reply_text("\n".join(response_lines), reply_markup=main_kb)
+    if inline_markup:
+        await target_msg.reply_text("--- Action Panel ---", reply_markup=inline_markup)
