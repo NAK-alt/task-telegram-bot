@@ -93,6 +93,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "group_reminder_alert": "⏰ **ការរំលឹកកាលបរិច្ឆេទកំណត់ភារកិច្ចក្រុម៖**\n\n👤 **មន្ត្រីទទូលខុសត្រូវ៖** %s\n📌 **បរិយាយ (Task)៖** %s\n⏰ **កាលបរិច្ឆេទកំណត់៖** %s",
         "private_reminder_alert": "⏰ **ការរំលឹកភារកិច្ចផ្ទាល់ខ្លួន៖**\n\n📌 **បរិយាយ (Task)៖** %s\n⏰ **កាលបរិច្ឆេទកំណត់៖** %s",
 
+        # Formal Invitation Message
+        "invite_message": "លោក/លោកស្រី មន្ត្រី និងសមាជិកក្រុមទាំងអស់ ជាទីគោរព,\n\nដើម្បីបង្កើនប្រសិទ្ធភាពនៃការបែងចែក និងតាមដានភារកិច្ចការងារឲ្យមានភាពរហ័ស និងមានរបៀបរៀបរយ យើងខ្ញុំសូមណែនាំប្រព័ន្ធ Telegram Bot គ្រប់គ្រងភារកិច្ចការងារផ្លូវការ។\n\nសូមលោក/លោកស្រី ចុចលើតំណភ្ជាប់ខាងក្រោម ដើម្បីចាប់ផ្តើមប្រើប្រាស់ (Start Bot)៖\n👉 @TaskOSHBot (ឬ https://t.me/TaskOSHBot)\n\nបន្ទាប់ពីចុច /start លោក/លោកស្រីអាច៖\n  • ទទួល និងពិនិត្យមើលភារកិច្ចដែលបានប្រគល់ជូន\n  • កត់សម្គាល់ភារកិច្ចដែលបានបញ្ចប់រៀបរយ\n  • ទទួលបានការរំលឹកកាលបរិច្ឆេទកំណត់ (Deadline) ដោយស្វ័យប្រវត្តិ\n\nសូមអរគុណ!",
+
         # Buttons
         "btn_complete": "កត់សម្គាល់ថាបានបញ្ចប់",
         "btn_cancel": "❌ បោះបង់",
@@ -197,6 +200,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "daily_briefing_empty": "✨ You have no personal tasks scheduled for today.",
         "group_reminder_alert": "⏰ **Group Task Deadline Warning:**\n\n👤 **Staff:** %s\n📌 **Task:** %s\n⏰ **Deadline:** %s",
         "private_reminder_alert": "⏰ **Personal Task Reminder:**\n\n📌 **Task:** %s\n⏰ **Deadline:** %s",
+
+        # Formal Invitation Message
+        "invite_message": "Dear Team Members & Officers,\n\nTo streamline task assignment, delegation, and daily task tracking across our department, we are introducing our official Telegram Task Assistant Bot.\n\nPlease click the link below to initialize and activate your account:\n👉 @TaskOSHBot (or https://t.me/TaskOSHBot)\n\nOnce activated, you can:\n  • View all tasks assigned to you by management\n  • Mark tasks as completed with a single tap\n  • Receive automatic deadline reminders and progress summaries\n\nThank you for your cooperation!",
 
         # Buttons
         "btn_complete": "Mark as Completed",

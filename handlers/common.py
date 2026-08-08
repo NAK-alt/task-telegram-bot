@@ -395,6 +395,19 @@ async def navigation_callback_handler(update: Update, context: ContextTypes.DEFA
         await grouptasks_command(update, context)
 
 
+async def invite_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /invite command to send formal invitation message."""
+    target_msg = update.effective_message
+    user = update.effective_user
+    chat = update.effective_chat
+    if not target_msg or not user:
+        return
+
+    lang = db.get_user_language(user.id) if (chat and chat.type == "private") else db.get_chat_language(chat.id if chat else user.id)
+    invite_text = t("invite_message", lang)
+    await target_msg.reply_text(invite_text)
+
+
 async def cancel_wizard_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle ❌ Cancel inline button click across any wizard flow."""
     query = update.callback_query

@@ -28,7 +28,8 @@ from handlers.common import (
     navigation_callback_handler,
     register_bot_commands,
     global_error_handler,
-    cancel_wizard_callback
+    cancel_wizard_callback,
+    invite_command
 )
 from handlers.private import (
     todo_command,
@@ -98,6 +99,7 @@ def main() -> None:
     application.add_handler(CommandHandler("language", language_command))
     application.add_handler(CommandHandler("role", role_command))
     application.add_handler(CommandHandler("report", report_command))
+    application.add_handler(CommandHandler("invite", invite_command))
 
     # Private Scope Handlers
     application.add_handler(CommandHandler("todo", todo_command))
