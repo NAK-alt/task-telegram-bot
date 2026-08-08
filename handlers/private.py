@@ -61,10 +61,20 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     chat = update.effective_chat
     target_msg = update.effective_message
-    if not user or not chat or not target_msg or chat.type != "private":
+    if not user or not chat or not target_msg:
         return
 
-    lang = db.get_user_language(user.id)
+    lang = db.get_user_language(user.id) if (chat.type == "private") else db.get_chat_language(chat.id)
+
+    if chat.type != "private":
+        msg = (
+            "⚠️ ពាក្យបញ្ជា /todo សម្រាប់ប្រើប្រាស់ផ្ទាល់ខ្លួនក្នុង Private Chat តែប៉ុណ្ណោះ (@TaskOSHBot)។ ក្នុងក្រុមសូមប្រើ @username ឈ្មោះភារកិច្ច ឬ /assign ដើម្បីប្រគល់ភារកិច្ចជូនមន្ត្រី។"
+            if lang == "km" else
+            "⚠️ The /todo command is exclusively for personal to-dos in Private Chat (@TaskOSHBot). In group chats, use @username task or /assign to delegate tasks."
+        )
+        await target_msg.reply_text(msg)
+        return
+
     args = context.args or []
 
     if not args:
@@ -78,18 +88,17 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await target_msg.reply_text(t("invalid_syntax", lang))
             return
         
-        full_text = " ".join(args[1:])
+        # Determine if deadline is provided at the end
         deadline = None
-        description = full_text
+        description = " ".join(args[1:])
 
-        # Check if last 2 tokens match YYYY-MM-DD HH:MM
-        tokens = full_text.rsplit(" ", 2)
-        if len(tokens) == 3:
-            potential_date = f"{tokens[1]} {tokens[2]}"
-            dt_parsed = parse_datetime(potential_date)
-            if dt_parsed:
-                deadline = dt_parsed
-                description = tokens[0]
+        # Try parsing last two tokens as HH:MM DD-MM-YYYY or YYYY-MM-DD HH:MM
+        if len(args) >= 3:
+            possible_dt = f"{args[-2]} {args[-1]}"
+            parsed = parse_datetime(possible_dt, db.get_user_timezone(user.id))
+            if parsed:
+                deadline = parsed
+                description = " ".join(args[1:-2])
 
         task = db.create_task(
             scope="private",
@@ -98,7 +107,7 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             deadline=deadline
         )
 
-        dl_str = format_dt(deadline)
+        dl_str = format_dt(deadline, lang=lang)
         await target_msg.reply_text(t("todo_added", lang, description, dl_str))
 
     elif subcommand in ["list", "show"]:
@@ -111,8 +120,8 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         task_id = args[1]
         completed = db.complete_task(task_id, user.id)
         if completed:
-            cr_str = format_dt(completed.get("created_at"))
-            cm_str = format_dt(completed.get("completed_at"))
+            cr_str = format_dt(completed.get("created_at"), lang=lang)
+            cm_str = format_dt(completed.get("completed_at"), lang=lang)
             await target_msg.reply_text(t("todo_completed", lang, cr_str, cm_str))
         else:
             await target_msg.reply_text(t("todo_not_found", lang))
@@ -121,40 +130,41 @@ async def todo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def todos_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Alias for /todo list."""
+    """Consolidated task handler."""
     await show_personal_todos(update, context)
 
 
 async def show_personal_todos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display all pending personal to-dos AND group tasks assigned to the user in a consolidated list."""
+    """Send user list of pending personal tasks and assigned tasks with inline completion buttons."""
     user = update.effective_user
     chat = update.effective_chat
     target_msg = update.effective_message
     if not user or not target_msg:
         return
 
-    from handlers.common import get_main_keyboard
-
     is_private = (chat.type == "private") if chat else True
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
     role = db.get_user_role(user.id) or "staff"
-    main_kb = get_main_keyboard(lang, is_private=is_private, role=role)
 
+    # Get user's personal to-dos
     private_tasks = db.get_private_tasks(user.id)
+    # Get group tasks assigned to user
     assigned_tasks = db.get_tasks_assigned_to_user(username=user.username or "", user_id=user.id)
 
     if not private_tasks and not assigned_tasks:
+        main_kb = get_main_keyboard(lang, is_private=is_private, role=role)
         await target_msg.reply_text(t("all_tasks_empty", lang), reply_markup=main_kb)
         return
 
-    response_lines = [t("todo_list_header", lang)]
+    response_lines = [t("todo_list_header", lang).strip()]
     keyboard = []
+    main_kb = get_main_keyboard(lang, is_private=is_private, role=role)
 
     # 1. Personal To-Dos
     if private_tasks:
         for task in private_tasks:
-            cr_str = format_dt(task.get("created_at"))
-            dl_str = format_dt(task.get("deadline"))
+            cr_str = format_dt(task.get("created_at"), lang=lang)
+            dl_str = format_dt(task.get("deadline"), lang=lang)
 
             line = f"• {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}"
             response_lines.append(line)
@@ -167,8 +177,8 @@ async def show_personal_todos(update: Update, context: ContextTypes.DEFAULT_TYPE
     if assigned_tasks:
         response_lines.append(f"\n{t('my_tasks_header', lang).strip()}")
         for task in assigned_tasks:
-            cr_str = format_dt(task.get("created_at"))
-            dl_str = format_dt(task.get("deadline"))
+            cr_str = format_dt(task.get("created_at"), lang=lang)
+            dl_str = format_dt(task.get("deadline"), lang=lang)
 
             line = f"• {task['title']}\n  📅 បង្កើត (Created): {cr_str} | ⏰ កំណត់ (Deadline): {dl_str}"
             response_lines.append(line)
@@ -194,19 +204,21 @@ async def private_done_button_callback(update: Update, context: ContextTypes.DEF
     """Handle inline button clicks to complete private or assigned group tasks."""
     query = update.callback_query
     user = update.effective_user
+    chat = update.effective_chat
     if not query or not user:
         return
 
     await query.answer()
     data = query.data
-    lang = db.get_user_language(user.id)
+    is_private = (chat.type == "private") if chat else True
+    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
 
     if data.startswith("done_priv_"):
         task_id = data.replace("done_priv_", "")
         completed = db.complete_task(task_id, user.id)
         if completed:
-            cr_str = format_dt(completed.get("created_at"))
-            cm_str = format_dt(completed.get("completed_at"))
+            cr_str = format_dt(completed.get("created_at"), lang=lang)
+            cm_str = format_dt(completed.get("completed_at"), lang=lang)
             await query.edit_message_text(t("todo_completed", lang, cr_str, cm_str))
         else:
             await query.edit_message_text(t("todo_not_found", lang))
@@ -214,26 +226,34 @@ async def private_done_button_callback(update: Update, context: ContextTypes.DEF
         task_id = data.replace("done_grp_", "")
         completed = db.complete_task(task_id, user.id)
         if completed:
-            cr_str = format_dt(completed.get("created_at"))
-            cm_str = format_dt(completed.get("completed_at"))
+            cr_str = format_dt(completed.get("created_at"), lang=lang)
+            cm_str = format_dt(completed.get("completed_at"), lang=lang)
             await query.edit_message_text(t("task_completed_group", lang, user.first_name, cr_str, cm_str))
         else:
             await query.edit_message_text(t("todo_not_found", lang))
 
 
 async def prompt_add_task_options(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Prompt user with interactive inline choice for adding task (Self vs Staff)."""
+    """Prompt user with interactive inline choice for adding task (Self vs Staff in private, Staff assignment only in group)."""
     user = update.effective_user
     chat = update.effective_chat
     target_msg = update.effective_message
-    if not user or not target_msg:
+    if not user or not target_msg or not chat:
         return
     
-    is_private = (chat.type == "private") if chat else True
-    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
-    role = db.get_user_role(user.id) or "staff"
-
+    is_private = (chat.type == "private")
+    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id)
     cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+    cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
+
+    if not is_private:
+        # In Group Chat: Only allow assigning members (@username task)
+        context.user_data["task_wizard"] = {"scope": "group"}
+        await target_msg.reply_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
+        return
+
+    # In Private Chat: Offer Personal To-Do or Staff Assignment (for Boss)
+    role = db.get_user_role(user.id) or "staff"
     if role == "boss":
         inline_kb = InlineKeyboardMarkup([
             [
@@ -245,8 +265,7 @@ async def prompt_add_task_options(update: Update, context: ContextTypes.DEFAULT_
         await target_msg.reply_text(t("wizard_select_type", lang), reply_markup=inline_kb)
     else:
         # Staff: Immediately prompt for personal task description
-        context.user_data["task_draft"] = {"scope": "private"}
-        cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
+        context.user_data["task_wizard"] = {"scope": "private"}
         await target_msg.reply_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
 
 
@@ -254,20 +273,31 @@ async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_T
     """Process selection of Personal vs Staff task type in wizard."""
     query = update.callback_query
     user = update.effective_user
+    chat = update.effective_chat
     if not query or not user:
         return
 
     await query.answer()
     data = query.data
-    lang = db.get_user_language(user.id)
+    is_private = (chat.type == "private") if chat else True
+    lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
     cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
     cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
 
     if data == "add_type_personal":
-        context.user_data["task_draft"] = {"scope": "private"}
+        if not is_private:
+            msg = (
+                "⚠️ នៅក្នុងក្រុម (Group) អាចធ្វើបានតែការប្រគល់ភារកិច្ចជូនមន្ត្រី (@username)។ សម្រាប់ភារកិច្ចផ្ទាល់ខ្លួន សូមផ្ញើសារផ្ទាល់ខ្លួនមកកាន់ Bot (@TaskOSHBot)។"
+                if lang == "km" else
+                "⚠️ Group chats are exclusively for assigning staff members (@username). For personal to-dos, please send a private message to @TaskOSHBot."
+            )
+            await query.edit_message_text(msg)
+            return
+
+        context.user_data["task_wizard"] = {"scope": "private"}
         await query.edit_message_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
     elif data == "add_type_staff":
-        context.user_data["task_draft"] = {"scope": "group"}
+        context.user_data["task_wizard"] = {"scope": "group"}
         await query.edit_message_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
 
 
