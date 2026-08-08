@@ -160,6 +160,7 @@ async def register_bot_commands(application) -> None:
             BotCommand("assign", "Delegate task to staff (Boss only)"),
             BotCommand("complete", "Mark task as completed"),
             BotCommand("membertasks", "Inspect staff tasks (Boss only)"),
+            BotCommand("role", "Select role (ប្រធាន / មន្ត្រី)"),
             BotCommand("help", "View guide and documentation"),
         ]
 
@@ -223,18 +224,13 @@ async def role_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     # Refresh persistent keyboard & inline dashboard with role-specific permissions
     is_private = (chat.type == "private") if chat else True
     reply_markup = get_main_keyboard(lang, is_private=is_private, role=target_role)
-    inline_markup = get_inline_dashboard(lang, is_private=is_private, role=target_role)
 
     if update.effective_message:
+        role_label = "ប្រធាន" if target_role == "boss" else "មន្ត្រី"
         await context.bot.send_message(
             chat_id=chat.id if chat else user.id,
-            text=confirm_msg,
+            text=f"🔄 **ម៉ឺនុយត្រូវបានផ្លាស់ប្តូរទៅជា៖ {role_label}**",
             reply_markup=reply_markup
-        )
-        await context.bot.send_message(
-            chat_id=chat.id if chat else user.id,
-            text="--- Executive Action Panel ---",
-            reply_markup=inline_markup
         )
 
 
