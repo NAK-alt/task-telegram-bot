@@ -403,11 +403,11 @@ async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAUL
             draft["selected_date"] = date_part
             time_kb = build_time_picker_keyboard(date_part, lang=lang)
             prompt_text = (
-                f"📅 កាលបរិច្ឆេទ៖ {date_part}\n\n⏰ សូមជ្រើសរើសម៉ោងកំណត់ (Time Slot) សម្រាប់៖ '{draft['title']}'\n(ឬវាយម៉ោងផ្ទាល់ ឧទាហរណ៍៖ 14:30)៖"
+                f"📅 **កាលបរិច្ឆេទ៖ {date_part}**\n\n⏰ **សូមវាយបញ្ចូលម៉ោងកំណត់ (ឧទាហរណ៍៖ 14:30) ៖**\n*(ឬចុចប៊ូតុង '🗓️ ត្រឹមចុងថ្ងៃ (17:00)' ខាងក្រោម)*"
                 if lang == "km" else
-                f"📅 Selected Date: {date_part}\n\n⏰ Select time slot for: '{draft['title']}'\n(or type custom time e.g. 14:30):"
+                f"📅 **Selected Date: {date_part}**\n\n⏰ **Please type your time (e.g. 14:30):**\n*(or click '🗓️ End of Day (17:00)' below)*"
             )
-            await query.edit_message_text(prompt_text, reply_markup=time_kb)
+            await query.edit_message_text(prompt_text, reply_markup=time_kb, parse_mode="Markdown")
 
     # Handle Back to Date Picker
     elif data == "cal_back_to_date":

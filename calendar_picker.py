@@ -84,32 +84,19 @@ def build_calendar_keyboard(year: int, month: int, lang: str = "km") -> InlineKe
 
 def build_time_picker_keyboard(date_str: str, lang: str = "km") -> InlineKeyboardMarkup:
     """Build time slot selection keyboard for selected date (YYYY-MM-DD)."""
+    btn_eod = "🗓️ ត្រឹមចុងថ្ងៃ (17:00)" if lang == "km" else "🗓️ End of Day (17:00)"
+    btn_back = "↩️ ត្រឡប់ (Back)" if lang == "km" else "↩️ Back"
+    btn_cancel = t("btn_cancel", lang)
+
     keyboard = [
-        # Row 1: Morning slots
+        # Option: Finished by end of that day (17:00)
         [
-            InlineKeyboardButton("⏱️ 08:00", callback_data=f"cal_time_{date_str}_08:00"),
-            InlineKeyboardButton("⏱️ 09:00", callback_data=f"cal_time_{date_str}_09:00"),
-            InlineKeyboardButton("⏱️ 10:00", callback_data=f"cal_time_{date_str}_10:00"),
-            InlineKeyboardButton("⏱️ 11:00", callback_data=f"cal_time_{date_str}_11:00"),
+            InlineKeyboardButton(btn_eod, callback_data=f"cal_time_{date_str}_17:00"),
         ],
-        # Row 2: Afternoon slots
+        # Navigation & Cancel
         [
-            InlineKeyboardButton("⏱️ 14:00", callback_data=f"cal_time_{date_str}_14:00"),
-            InlineKeyboardButton("⏱️ 15:00", callback_data=f"cal_time_{date_str}_15:00"),
-            InlineKeyboardButton("⏱️ 16:00", callback_data=f"cal_time_{date_str}_16:00"),
-            InlineKeyboardButton("⏱️ 17:00", callback_data=f"cal_time_{date_str}_17:00"),
-        ],
-        # Row 3: Evening slots
-        [
-            InlineKeyboardButton("⏱️ 18:00", callback_data=f"cal_time_{date_str}_18:00"),
-            InlineKeyboardButton("⏱️ 19:00", callback_data=f"cal_time_{date_str}_19:00"),
-            InlineKeyboardButton("⏱️ 20:00", callback_data=f"cal_time_{date_str}_20:00"),
-            InlineKeyboardButton("⏱️ 21:00", callback_data=f"cal_time_{date_str}_21:00"),
-        ],
-        # Row 4: Custom Time & Navigation
-        [
-            InlineKeyboardButton("↩️ ត្រឡប់ (Back)" if lang == "km" else "↩️ Back", callback_data="cal_back_to_date"),
-            InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+            InlineKeyboardButton(btn_back, callback_data="cal_back_to_date"),
+            InlineKeyboardButton(btn_cancel, callback_data="cancel_wizard")
         ]
     ]
 
