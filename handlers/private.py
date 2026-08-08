@@ -13,6 +13,7 @@ from telegram.ext import ContextTypes
 import database as db
 from i18n import t
 from config import DEFAULT_TIMEZONE
+from calendar_picker import build_calendar_keyboard, build_time_picker_keyboard
 
 
 def parse_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[datetime.datetime]:
@@ -260,13 +261,22 @@ async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_T
         await query.edit_message_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
 
 
-def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[datetime.datetime]:
+def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE, base_date: Optional[str] = None) -> Optional[datetime.datetime]:
     """Parse flexible date/time strings into UTC datetime."""
     text = date_str.strip()
     if text.lower() in ["none", "no", "0", "គ្មាន", "skip", "n/a"]:
         return None
     local_tz = pytz.timezone(tz_name)
     now = datetime.datetime.now(local_tz)
+
+    if base_date:
+        try:
+            full_str = f"{base_date} {text}"
+            dt = datetime.datetime.strptime(full_str, "%Y-%m-%d %H:%M")
+            local_dt = local_tz.localize(dt)
+            return local_dt.astimezone(pytz.utc)
+        except ValueError:
+            pass
 
     formats = [
         "%Y-%m-%d %H:%M",
@@ -301,10 +311,125 @@ def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> O
     return None
 
 
+async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE, draft: dict, deadline: Optional[datetime.datetime], lang: str) -> None:
+    """Save task to database and notify user with confirmation text."""
+    user = update.effective_user
+    chat = update.effective_chat
+    query = update.callback_query
+
+    if draft["scope"] == "private":
+        task = db.create_task(
+            scope="private",
+            title=draft["title"],
+            user_id=user.id,
+            deadline=deadline
+        )
+        dl_str = format_dt(deadline)
+        confirm_text = t("todo_added", lang, task["task_id"], draft["title"], dl_str)
+    else:
+        task = db.create_task(
+            scope="group",
+            title=draft["title"],
+            user_id=user.id,
+            group_id=chat.id if (chat and chat.type != "private") else user.id,
+            assigned_to_username=draft.get("assigned_to_username"),
+            assigned_by_id=user.id,
+            assigned_by_username=user.username or user.first_name,
+            deadline=deadline
+        )
+        dl_str = format_dt(deadline)
+        confirm_text = t(
+            "task_assigned",
+            lang,
+            f"@{draft.get('assigned_to_username')}",
+            task["task_id"],
+            draft["title"],
+            dl_str,
+            user.first_name
+        )
+
+    context.user_data.pop("task_draft", None)
+    if query:
+        await query.edit_message_text(confirm_text)
+    elif update.effective_message:
+        await update.effective_message.reply_text(confirm_text)
+
+
+async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Process calendar grid navigation, date selection, and time slot selection."""
+    query = update.callback_query
+    user = update.effective_user
+    chat = update.effective_chat
+    if not query or not user:
+        return
+
+    await query.answer()
+    data = query.data
+    lang = db.get_user_language(user.id) if (chat and chat.type == "private") else db.get_chat_language(chat.id if chat else user.id)
+
+    draft = context.user_data.get("task_draft")
+    if data == "cal_ignore":
+        return
+
+    if not draft or "title" not in draft:
+        await query.edit_message_text(t("error_occurred", lang))
+        return
+
+    # Handle Navigation: prev / next month
+    if data.startswith("cal_nav_"):
+        parts = data.split("_")  # ['cal', 'nav', '2026', '8', 'prev']
+        year, month, action = int(parts[2]), int(parts[3]), parts[4]
+        if action == "prev":
+            month -= 1
+            if month < 1:
+                month = 12
+                year -= 1
+        elif action == "next":
+            month += 1
+            if month > 12:
+                month = 1
+                year += 1
+        
+        cal_kb = build_calendar_keyboard(year, month, lang=lang)
+        prompt_text = t("wizard_prompt_deadline", lang, draft["title"])
+        await query.edit_message_text(prompt_text, reply_markup=cal_kb)
+
+    # Handle Date Selection: cal_day_YYYY-MM-DD or cal_day_none
+    elif data.startswith("cal_day_"):
+        date_part = data.replace("cal_day_", "")
+        if date_part == "none":
+            await finalize_task_with_deadline(update, context, draft, deadline=None, lang=lang)
+        else:
+            draft["selected_date"] = date_part
+            time_kb = build_time_picker_keyboard(date_part, lang=lang)
+            prompt_text = (
+                f"📅 កាលបរិច្ឆេទ៖ {date_part}\n\n⏰ សូមជ្រើសរើសម៉ោងកំណត់ (Time Slot) សម្រាប់៖ '{draft['title']}'\n(ឬវាយម៉ោងផ្ទាល់ ឧទាហរណ៍៖ 14:30)៖"
+                if lang == "km" else
+                f"📅 Selected Date: {date_part}\n\n⏰ Select time slot for: '{draft['title']}'\n(or type custom time e.g. 14:30):"
+            )
+            await query.edit_message_text(prompt_text, reply_markup=time_kb)
+
+    # Handle Back to Date Picker
+    elif data == "cal_back_to_date":
+        local_tz = pytz.timezone(DEFAULT_TIMEZONE)
+        now = datetime.datetime.now(local_tz)
+        cal_kb = build_calendar_keyboard(now.year, now.month, lang=lang)
+        prompt_text = t("wizard_prompt_deadline", lang, draft["title"])
+        await query.edit_message_text(prompt_text, reply_markup=cal_kb)
+
+    # Handle Time Slot Selection: cal_time_YYYY-MM-DD_HH:MM
+    elif data.startswith("cal_time_"):
+        raw_val = data.replace("cal_time_", "")
+        date_str, time_str = raw_val.split("_")
+        full_dt_str = f"{date_str} {time_str}"
+        deadline = parse_flexible_datetime(full_dt_str)
+        await finalize_task_with_deadline(update, context, draft, deadline=deadline, lang=lang)
+
+
 async def handle_task_creation_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
     Check if user is currently in a task creation draft state.
-    Handles both Step 1 (Title/Assignee) and Step 2 (Custom Deadline Text Input).
+    Handles both Step 1 (Title/Assignee) and Step 2 (Interactive Calendar & Text Input).
     Returns True if handled, False otherwise.
     """
     user = update.effective_user
@@ -322,50 +447,18 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
 
     # Step 2: User is typing custom deadline text because title was already collected
     if draft.get("step") == "awaiting_deadline":
-        deadline = parse_flexible_datetime(text)
+        base_date = draft.get("selected_date")
+        deadline = parse_flexible_datetime(text, base_date=base_date)
         if deadline is None and text.lower() not in ["none", "no", "0", "គ្មាន", "skip", "n/a"]:
             error_msg = (
-                "⚠️ ទម្រង់កាលបរិច្ឆេទមិនត្រឹមត្រូវ។ សូមវាយបញ្ចូលទម្រង់៖ YYYY-MM-DD HH:MM (ឧទាហរណ៍៖ 2026-08-20 17:00 ឬ 20/08/2026) ឬវាយ 'គ្មាន' ប្រសិនបើគ្មានកាលបរិច្ឆេទកំណត់។"
+                "⚠️ ទម្រង់កាលបរិច្ឆេទមិនត្រឹមត្រូវ។ សូមជ្រើសរើសតាមរយៈប្រតិទិនខាងលើ ឬវាយបញ្ចូលទម្រង់៖ YYYY-MM-DD HH:MM (ឧទាហរណ៍៖ 2026-08-20 17:00 ឬ 20/08/2026) ឬ 14:30!"
                 if lang == "km" else
-                "⚠️ Invalid date format. Please use: YYYY-MM-DD HH:MM (e.g. 2026-08-20 17:00 or 20/08/2026) or type 'none' for no deadline."
+                "⚠️ Invalid date format. Please choose from calendar or type: YYYY-MM-DD HH:MM (e.g. 2026-08-20 17:00) or 14:30!"
             )
             await msg.reply_text(error_msg)
             return True
 
-        # Save to database
-        if draft["scope"] == "private":
-            task = db.create_task(
-                scope="private",
-                title=draft["title"],
-                user_id=user.id,
-                deadline=deadline
-            )
-            dl_str = format_dt(deadline)
-            confirm_text = t("todo_added", lang, task["task_id"], draft["title"], dl_str)
-        else:
-            task = db.create_task(
-                scope="group",
-                title=draft["title"],
-                user_id=user.id,
-                group_id=chat.id if (chat and chat.type != "private") else user.id,
-                assigned_to_username=draft.get("assigned_to_username"),
-                assigned_by_id=user.id,
-                assigned_by_username=user.username or user.first_name,
-                deadline=deadline
-            )
-            dl_str = format_dt(deadline)
-            confirm_text = t(
-                "task_assigned",
-                lang,
-                f"@{draft.get('assigned_to_username')}",
-                task["task_id"],
-                draft["title"],
-                dl_str,
-                user.first_name
-            )
-
-        context.user_data.pop("task_draft", None)
-        await msg.reply_text(confirm_text)
+        await finalize_task_with_deadline(update, context, draft, deadline=deadline, lang=lang)
         return True
 
     # Step 1: User is typing title (and assignee if staff assignment)
@@ -381,11 +474,12 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
 
     draft["step"] = "awaiting_deadline"
 
-    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
-    cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
+    local_tz = pytz.timezone(DEFAULT_TIMEZONE)
+    now = datetime.datetime.now(local_tz)
+    cal_kb = build_calendar_keyboard(now.year, now.month, lang=lang)
 
     prompt_text = t("wizard_prompt_deadline", lang, draft["title"])
-    await msg.reply_text(prompt_text, reply_markup=cancel_kb)
+    await msg.reply_text(prompt_text, reply_markup=cal_kb)
     return True
 
 

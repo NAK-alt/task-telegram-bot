@@ -40,6 +40,7 @@ from handlers.private import (
     prompt_complete_assigned_task,
     add_task_type_callback,
     deadline_preset_callback,
+    calendar_callback_handler,
     handle_task_creation_text_input
 )
 from handlers.group import (
@@ -120,6 +121,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.Regex(r"^(📊 របាយការណ៍ \(ប្រធាន\)|📊 Task Report \(Boss\)|📊 របាយការណ៍ \(មន្ត្រី\)|📊 Task Report \(Staff\))$"), report_command))
 
     application.add_handler(CallbackQueryHandler(cancel_wizard_callback, pattern="^cancel_wizard$"))
+    application.add_handler(CallbackQueryHandler(calendar_callback_handler, pattern="^cal_"))
     application.add_handler(CallbackQueryHandler(report_type_callback, pattern="^rpt_type_"))
     application.add_handler(CallbackQueryHandler(report_generate_callback, pattern="^rpt_fmt_"))
     application.add_handler(CallbackQueryHandler(add_task_type_callback, pattern="^add_type_"))
