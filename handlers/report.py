@@ -35,8 +35,34 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
 
+    if not is_private:
+        # In Group Chat: Hide personal tasks report completely! Show only Staff Assignments Report options for Boss.
+        if db.is_boss(user.id):
+            fmt_kb = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(t("btn_fmt_msg", lang), callback_data="rpt_fmt_msg_staff"),
+                ],
+                [
+                    InlineKeyboardButton(t("btn_fmt_excel", lang), callback_data="rpt_fmt_excel_staff"),
+                ],
+                [cancel_btn]
+            ])
+            await target_msg.reply_text(t("prompt_report_fmt", lang), reply_markup=fmt_kb)
+        else:
+            fmt_kb = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(t("btn_fmt_msg", lang), callback_data="rpt_fmt_msg_self"),
+                ],
+                [
+                    InlineKeyboardButton(t("btn_fmt_excel", lang), callback_data="rpt_fmt_excel_self"),
+                ],
+                [cancel_btn]
+            ])
+            await target_msg.reply_text(t("prompt_report_staff_fmt", lang), reply_markup=fmt_kb)
+        return
+
+    # In Private Chat: Boss can choose between Personal To-Dos and Staff Member Assignments
     if db.is_boss(user.id):
-        # Boss persona: Choose between Boss Personal To-Dos vs Staff Member Assignments
         inline_kb = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton(t("btn_rpt_personal", lang), callback_data="rpt_type_personal"),
@@ -48,7 +74,6 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         ])
         await target_msg.reply_text(t("prompt_report_type", lang), reply_markup=inline_kb)
     else:
-        # Officer / Staff persona: Directly choose format for self tasks (Personal To-Dos & Boss Assignments)
         fmt_kb = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton(t("btn_fmt_msg", lang), callback_data="rpt_fmt_msg_self"),
