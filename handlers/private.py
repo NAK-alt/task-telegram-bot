@@ -248,7 +248,7 @@ async def prompt_add_task_options(update: Update, context: ContextTypes.DEFAULT_
 
     if not is_private:
         # In Group Chat: Only allow assigning members (@username task)
-        context.user_data["task_wizard"] = {"scope": "group"}
+        context.user_data["task_draft"] = {"scope": "group"}
         await target_msg.reply_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
         return
 
@@ -265,7 +265,7 @@ async def prompt_add_task_options(update: Update, context: ContextTypes.DEFAULT_
         await target_msg.reply_text(t("wizard_select_type", lang), reply_markup=inline_kb)
     else:
         # Staff: Immediately prompt for personal task description
-        context.user_data["task_wizard"] = {"scope": "private"}
+        context.user_data["task_draft"] = {"scope": "private"}
         await target_msg.reply_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
 
 
@@ -294,10 +294,10 @@ async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_T
             await query.edit_message_text(msg)
             return
 
-        context.user_data["task_wizard"] = {"scope": "private"}
+        context.user_data["task_draft"] = {"scope": "private"}
         await query.edit_message_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
     elif data == "add_type_staff":
-        context.user_data["task_wizard"] = {"scope": "group"}
+        context.user_data["task_draft"] = {"scope": "group"}
         await query.edit_message_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
 
 
@@ -569,42 +569,7 @@ async def deadline_preset_callback(update: Update, context: ContextTypes.DEFAULT
     elif data == "dl_preset_none":
         deadline = None
 
-    # Save to database
-    if draft["scope"] == "private":
-        task = db.create_task(
-            scope="private",
-            title=draft["title"],
-            user_id=user.id,
-            deadline=deadline
-        )
-        dl_str = format_dt(deadline)
-        confirm_text = t("todo_added", lang, task["task_id"], draft["title"], dl_str)
-    else:
-        task = db.create_task(
-            scope="group",
-            title=draft["title"],
-            user_id=user.id,
-            group_id=chat.id if (chat and chat.type != "private") else user.id,
-            assigned_to_username=draft.get("assigned_to_username"),
-            assigned_by_id=user.id,
-            assigned_by_username=user.username or user.first_name,
-            deadline=deadline
-        )
-        dl_str = format_dt(deadline)
-        confirm_text = t(
-            "task_assigned",
-            lang,
-            f"@{draft.get('assigned_to_username')}",
-            task["task_id"],
-            draft["title"],
-            dl_str,
-            user.first_name
-        )
-
-    # Clear draft state
-    context.user_data.pop("task_draft", None)
-
-    await query.edit_message_text(confirm_text)
+    await finalize_task_with_deadline(update, context, draft, deadline=deadline, lang=lang)
 
 
 async def prompt_complete_assigned_task(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
