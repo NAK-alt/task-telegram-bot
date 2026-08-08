@@ -114,7 +114,7 @@ def main() -> None:
 
     # Persistent Reply Keyboard Text Handlers (Khmer & English) - TOP ROW BUTTONS FIRST
     application.add_handler(MessageHandler(filters.Regex(r"^(➕ បន្ថែមភារកិច្ច \(ខ្លួនឯង / មន្ត្រី\)|➕ Add To-Do \(Self / Staff\)|➕ បន្ថែមភារកិច្ចផ្ទាល់ខ្លួន|➕ Add Personal To-Do|➕ ប្រគល់ភារកិច្ចជូនមន្ត្រី|➕ Assign Task to Staff)$"), prompt_add_task_options))
-    application.add_handler(MessageHandler(filters.Regex(r"^(✓ បញ្ចប់ភារកិច្ចដែលបានប្រគល់|✓ Complete Assigned Task|✓ បញ្ចប់ភារកិច្ចក្រុម|✓ Complete Group Task)$"), prompt_complete_assigned_task))
+    application.add_handler(MessageHandler(filters.Regex(r"^(✓ បញ្ចប់ភារកិច្ចដែលបានទទួល|✓ បញ្ចប់ភារកិច្ចដែលបានប្រគល់|✓ Complete Assigned Task|✓ បញ្ចប់ភារកិច្ចក្រុម|✓ Complete Group Task)$"), prompt_complete_assigned_task))
     
     application.add_handler(MessageHandler(filters.Regex(r"^(📋 បញ្ជីភារកិច្ចផ្ទាល់ខ្លួន|📋 Personal To-Dos)$"), todos_command))
     application.add_handler(MessageHandler(filters.Regex(r"^(📌 ភារកិច្ចដែលបានប្រគល់ជូនខ្ញុំ|📌 Tasks Assigned to Me)$"), mytasks_command))

@@ -106,7 +106,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Pinned Keyboard Buttons (Boss vs Staff)
         "btn_menu_add_task_boss": "➕ បន្ថែមភារកិច្ច (ខ្លួនឯង / មន្ត្រី)",
         "btn_menu_add_task_staff": "➕ បន្ថែមភារកិច្ចផ្ទាល់ខ្លួន",
-        "btn_menu_complete_task": "✓ បញ្ចប់ភារកិច្ចដែលបានប្រគល់",
+        "btn_menu_complete_task": "✓ បញ្ចប់ភារកិច្ចដែលបានទទួល",
         "btn_menu_todos": "📋 បញ្ជីភារកិច្ចផ្ទាល់ខ្លួន",
         "btn_menu_mytasks": "📌 ភារកិច្ចដែលបានប្រគល់ជូនខ្ញុំ",
         "btn_menu_member_tasks": "👥 ពិនិត្យភារកិច្ចមន្ត្រី (ប្រធាន)",
