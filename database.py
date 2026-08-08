@@ -26,17 +26,22 @@ def init_db() -> firestore.Client:
     if not firebase_admin._apps:
         json_env = os.environ.get("FIREBASE_CREDENTIALS_JSON")
         if json_env:
+            # Clean string and strip UTF-8 BOM (\ufeff) if present from Windows/PowerShell pipes
+            json_env = json_env.strip("\ufeff\r\n ")
             try:
                 import json
                 dict_cred = json.loads(json_env)
                 cred = credentials.Certificate(dict_cred)
                 firebase_admin.initialize_app(cred)
-            except Exception:
-                import base64, json
-                decoded = base64.b64decode(json_env).decode("utf-8")
-                dict_cred = json.loads(decoded)
-                cred = credentials.Certificate(dict_cred)
-                firebase_admin.initialize_app(cred)
+            except Exception as e:
+                try:
+                    import base64, json
+                    decoded = base64.b64decode(json_env).decode("utf-8-sig")
+                    dict_cred = json.loads(decoded)
+                    cred = credentials.Certificate(dict_cred)
+                    firebase_admin.initialize_app(cred)
+                except Exception as inner_e:
+                    raise ValueError(f"Failed to parse FIREBASE_CREDENTIALS_JSON: {e} | {inner_e}")
         else:
             target_path = FIREBASE_SERVICE_ACCOUNT_PATH
             if not os.path.exists(target_path) and os.path.exists(f"{FIREBASE_SERVICE_ACCOUNT_PATH}.json"):
