@@ -14,6 +14,7 @@ import database as db
 from i18n import t
 from config import DEFAULT_TIMEZONE
 from calendar_picker import build_calendar_keyboard, build_time_picker_keyboard
+from handlers.common import get_main_keyboard
 
 
 def parse_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[datetime.datetime]:
