@@ -30,8 +30,8 @@ def parse_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[d
     return None
 
 
-def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE) -> str:
-    """Format Firestore/Python datetime object into local timezone string HH:MM DD-MM-YYYY."""
+def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE, lang: str = "km") -> str:
+    """Format Firestore/Python datetime object into local timezone string HH:MM DD-MM-YYYY or End of Day."""
     if not dt_val:
         return "N/A"
     try:
@@ -40,7 +40,11 @@ def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE) -> str:
             dt_val = dt_val.to_datetime()
         if dt_val.tzinfo is None:
             dt_val = pytz.utc.localize(dt_val)
-        return dt_val.astimezone(local_tz).strftime("%H:%M %d-%m-%Y")
+        local_dt = dt_val.astimezone(local_tz)
+        if local_dt.hour == 23 and local_dt.minute == 59:
+            eod_str = "ត្រឹមចុងថ្ងៃ" if lang == "km" else "End of Day"
+            return f"{eod_str} {local_dt.strftime('%d-%m-%Y')}"
+        return local_dt.strftime("%H:%M %d-%m-%Y")
     except Exception:
         return "N/A"
 

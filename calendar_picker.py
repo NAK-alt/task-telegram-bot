@@ -84,14 +84,14 @@ def build_calendar_keyboard(year: int, month: int, lang: str = "km") -> InlineKe
 
 def build_time_picker_keyboard(date_str: str, lang: str = "km") -> InlineKeyboardMarkup:
     """Build time slot selection keyboard for selected date (YYYY-MM-DD)."""
-    btn_eod = "🗓️ ត្រឹមចុងថ្ងៃ (17:00)" if lang == "km" else "🗓️ End of Day (17:00)"
+    btn_eod = "🗓️ ត្រឹមចុងថ្ងៃ" if lang == "km" else "🗓️ End of Day"
     btn_back = "↩️ ត្រឡប់ (Back)" if lang == "km" else "↩️ Back"
     btn_cancel = t("btn_cancel", lang)
 
     keyboard = [
-        # Option: Finished by end of that day (17:00)
+        # Option: Finished by end of that day (23:59)
         [
-            InlineKeyboardButton(btn_eod, callback_data=f"cal_time_{date_str}_17:00"),
+            InlineKeyboardButton(btn_eod, callback_data=f"cal_time_{date_str}_23:59"),
         ],
         # Navigation & Cancel
         [

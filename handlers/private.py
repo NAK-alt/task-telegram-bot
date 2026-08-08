@@ -31,8 +31,8 @@ def parse_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[d
     return None
 
 
-def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE) -> str:
-    """Format Firestore/Python datetime object into local timezone string HH:MM DD-MM-YYYY."""
+def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE, lang: str = "km") -> str:
+    """Format Firestore/Python datetime object into local timezone string HH:MM DD-MM-YYYY or End of Day."""
     if not dt_val:
         return "N/A"
     try:
@@ -41,7 +41,11 @@ def format_dt(dt_val: Optional[Any], tz_name: str = DEFAULT_TIMEZONE) -> str:
             dt_val = dt_val.to_datetime()
         if dt_val.tzinfo is None:
             dt_val = pytz.utc.localize(dt_val)
-        return dt_val.astimezone(local_tz).strftime("%H:%M %d-%m-%Y")
+        local_dt = dt_val.astimezone(local_tz)
+        if local_dt.hour == 23 and local_dt.minute == 59:
+            eod_str = "ត្រឹមចុងថ្ងៃ" if lang == "km" else "End of Day"
+            return f"{eod_str} {local_dt.strftime('%d-%m-%Y')}"
+        return local_dt.strftime("%H:%M %d-%m-%Y")
     except Exception:
         return "N/A"
 
@@ -301,7 +305,7 @@ def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE, base
         try:
             dt = datetime.datetime.strptime(text, fmt)
             if " " not in fmt:
-                dt = dt.replace(hour=17, minute=0, second=0)
+                dt = dt.replace(hour=23, minute=59, second=0)
             local_dt = local_tz.localize(dt)
             return local_dt.astimezone(pytz.utc)
         except ValueError:
@@ -411,9 +415,9 @@ async def calendar_callback_handler(update: Update, context: ContextTypes.DEFAUL
             draft["selected_date"] = date_part
             time_kb = build_time_picker_keyboard(date_part, lang=lang)
             prompt_text = (
-                f"📅 **កាលបរិច្ឆេទ៖ {date_part}**\n\n⏰ **សូមវាយបញ្ចូលម៉ោងកំណត់ (ឧទាហរណ៍៖ 14:30) ៖**\n*(ឬចុចប៊ូតុង '🗓️ ត្រឹមចុងថ្ងៃ (17:00)' ខាងក្រោម)*"
+                f"📅 **កាលបរិច្ឆេទ៖ {date_part}**\n\n⏰ **សូមវាយបញ្ចូលម៉ោងកំណត់ (ឧទាហរណ៍៖ 14:30) ៖**\n*(ឬចុចប៊ូតុង '🗓️ ត្រឹមចុងថ្ងៃ' ខាងក្រោម)*"
                 if lang == "km" else
-                f"📅 **Selected Date: {date_part}**\n\n⏰ **Please type your time (e.g. 14:30):**\n*(or click '🗓️ End of Day (17:00)' below)*"
+                f"📅 **Selected Date: {date_part}**\n\n⏰ **Please type your time (e.g. 14:30):**\n*(or click '🗓️ End of Day' below)*"
             )
             await query.edit_message_text(prompt_text, reply_markup=time_kb, parse_mode="Markdown")
 
