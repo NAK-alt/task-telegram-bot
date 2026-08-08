@@ -395,6 +395,21 @@ async def navigation_callback_handler(update: Update, context: ContextTypes.DEFA
         await grouptasks_command(update, context)
 
 
+async def cancel_wizard_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle ❌ Cancel inline button click across any wizard flow."""
+    query = update.callback_query
+    user = update.effective_user
+    if not query or not user:
+        return
+
+    await query.answer()
+    lang = db.get_user_language(user.id)
+    context.user_data.pop("task_draft", None)
+    context.user_data.pop("report_draft", None)
+
+    await query.edit_message_text(t("wizard_cancelled", lang))
+
+
 async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log exceptions and handle specific Telegram API errors cleanly."""
     logger.error("Exception while handling an update:", exc_info=context.error)

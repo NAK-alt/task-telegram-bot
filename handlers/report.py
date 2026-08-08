@@ -33,6 +33,8 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     is_private = (chat.type == "private") if chat else True
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
 
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+
     if db.is_boss(user.id):
         # Boss persona: Choose between Boss Personal To-Dos vs Staff Member Assignments
         inline_kb = InlineKeyboardMarkup([
@@ -41,7 +43,8 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             ],
             [
                 InlineKeyboardButton(t("btn_rpt_staff", lang), callback_data="rpt_type_staff"),
-            ]
+            ],
+            [cancel_btn]
         ])
         await target_msg.reply_text(t("prompt_report_type", lang), reply_markup=inline_kb)
     else:
@@ -52,7 +55,8 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             ],
             [
                 InlineKeyboardButton(t("btn_fmt_excel", lang), callback_data="rpt_fmt_excel_self"),
-            ]
+            ],
+            [cancel_btn]
         ])
         await target_msg.reply_text(t("prompt_report_staff_fmt", lang), reply_markup=fmt_kb)
 
@@ -67,6 +71,7 @@ async def report_type_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
     data = query.data
     lang = db.get_user_language(user.id)
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
 
     report_type = data.replace("rpt_type_", "")  # 'personal' or 'staff'
 
@@ -76,7 +81,8 @@ async def report_type_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         ],
         [
             InlineKeyboardButton(t("btn_fmt_excel", lang), callback_data=f"rpt_fmt_excel_{report_type}"),
-        ]
+        ],
+        [cancel_btn]
     ])
 
     await query.edit_message_text(t("prompt_report_fmt", lang), reply_markup=fmt_kb)

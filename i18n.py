@@ -95,6 +95,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Buttons
         "btn_complete": "កត់សម្គាល់ថាបានបញ្ចប់",
+        "btn_cancel": "❌ បោះបង់",
+        "wizard_cancelled": "🚫 ប្រតិបត្តិការត្រូវបានបោះបង់។",
         "btn_lang_km": "ភាសាខ្មែរ (Khmer)",
         "btn_lang_en": "English",
         
@@ -198,6 +200,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Buttons
         "btn_complete": "Mark as Completed",
+        "btn_cancel": "❌ Cancel",
+        "wizard_cancelled": "🚫 Operation cancelled.",
         "btn_lang_km": "ភាសាខ្មែរ (Khmer)",
         "btn_lang_en": "English",
         

@@ -27,7 +27,8 @@ from handlers.common import (
     role_button_callback,
     navigation_callback_handler,
     register_bot_commands,
-    global_error_handler
+    global_error_handler,
+    cancel_wizard_callback
 )
 from handlers.private import (
     todo_command,
@@ -118,7 +119,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.Regex(r"^(👥 ពិនិត្យភារកិច្ចមន្ត្រី \(ប្រធាន\)|👥 Check Staff Tasks \(Boss\)|👥 ពិនិត្យភារកិច្ចសមាជិក|👥 Check Member Assignments)$"), membertasks_command))
     application.add_handler(MessageHandler(filters.Regex(r"^(📊 របាយការណ៍ \(ប្រធាន\)|📊 Task Report \(Boss\)|📊 របាយការណ៍ \(មន្ត្រី\)|📊 Task Report \(Staff\))$"), report_command))
 
-    # Callback Query Handlers
+    application.add_handler(CallbackQueryHandler(cancel_wizard_callback, pattern="^cancel_wizard$"))
     application.add_handler(CallbackQueryHandler(report_type_callback, pattern="^rpt_type_"))
     application.add_handler(CallbackQueryHandler(report_generate_callback, pattern="^rpt_fmt_"))
     application.add_handler(CallbackQueryHandler(add_task_type_callback, pattern="^add_type_"))

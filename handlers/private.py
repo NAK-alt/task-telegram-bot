@@ -222,18 +222,21 @@ async def prompt_add_task_options(update: Update, context: ContextTypes.DEFAULT_
     lang = db.get_user_language(user.id) if is_private else db.get_chat_language(chat.id if chat else user.id)
     role = db.get_user_role(user.id) or "staff"
 
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
     if role == "boss":
         inline_kb = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton(t("btn_type_personal", lang), callback_data="add_type_personal"),
                 InlineKeyboardButton(t("btn_type_staff", lang), callback_data="add_type_staff")
-            ]
+            ],
+            [cancel_btn]
         ])
         await target_msg.reply_text(t("wizard_select_type", lang), reply_markup=inline_kb)
     else:
         # Staff: Immediately prompt for personal task description
         context.user_data["task_draft"] = {"scope": "private"}
-        await target_msg.reply_text(t("wizard_prompt_personal_title", lang))
+        cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
+        await target_msg.reply_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
 
 
 async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -246,13 +249,15 @@ async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
     data = query.data
     lang = db.get_user_language(user.id)
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+    cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
 
     if data == "add_type_personal":
         context.user_data["task_draft"] = {"scope": "private"}
-        await query.edit_message_text(t("wizard_prompt_personal_title", lang))
+        await query.edit_message_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
     elif data == "add_type_staff":
         context.user_data["task_draft"] = {"scope": "group"}
-        await query.edit_message_text(t("wizard_prompt_staff_task", lang))
+        await query.edit_message_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
 
 
 def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE) -> Optional[datetime.datetime]:
@@ -376,8 +381,11 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
 
     draft["step"] = "awaiting_deadline"
 
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+    cancel_kb = InlineKeyboardMarkup([[cancel_btn]])
+
     prompt_text = t("wizard_prompt_deadline", lang, draft["title"])
-    await msg.reply_text(prompt_text)
+    await msg.reply_text(prompt_text, reply_markup=cancel_kb)
     return True
 
 
