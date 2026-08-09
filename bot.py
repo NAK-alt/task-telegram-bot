@@ -130,7 +130,6 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(calendar_callback_handler, pattern="^cal_"))
     application.add_handler(CallbackQueryHandler(report_type_callback, pattern="^rpt_type_"))
     application.add_handler(CallbackQueryHandler(report_generate_callback, pattern="^rpt_fmt_"))
-    application.add_handler(CallbackQueryHandler(report_clear_all_callback, pattern="^rpt_clear_all_"))
     application.add_handler(CallbackQueryHandler(report_admin_manage_callback, pattern="^(rpt_admin_manage|edit_task_menu_|edit_title_|edit_dl_)"))
     application.add_handler(CallbackQueryHandler(add_task_type_callback, pattern="^add_type_"))
     application.add_handler(CallbackQueryHandler(deadline_preset_callback, pattern="^dl_preset_"))
