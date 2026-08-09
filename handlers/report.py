@@ -140,14 +140,14 @@ async def report_admin_manage_callback(update: Update, context: ContextTypes.DEF
             assignee = f"@{task['assigned_to_username']}" if task.get("assigned_to_username") else "Self/General"
             dl_str = format_dt(task.get("deadline"), lang=lang)
 
-            line = f"{idx}. {status_str} **{task['title']}** [#{task['task_id']}]\n   👤 អ្នកទទួល: {assignee} | ⏰ កំណត់: {dl_str}"
+            line = f"{idx}. {status_str} **{task['title']}**\n   👤 អ្នកទទួល: {assignee} | ⏰ កំណត់: {dl_str}"
             response_lines.append(line)
 
-            btn_edit = InlineKeyboardButton(f"✏️ កែ #{task['task_id']}", callback_data=f"edit_task_menu_{task['task_id']}")
-            btn_del = InlineKeyboardButton(f"🗑️ លុប #{task['task_id']}", callback_data=f"del_task_{task['task_id']}")
+            title_snippet = task['title'][:20] + ('...' if len(task['title']) > 20 else '')
+            btn_edit = InlineKeyboardButton(f"✏️ កែ៖ {title_snippet}", callback_data=f"edit_task_menu_{task['task_id']}")
+            btn_del = InlineKeyboardButton(f"🗑️ លុប៖ {title_snippet}", callback_data=f"del_task_{task['task_id']}")
             keyboard.append([btn_edit, btn_del])
 
-        keyboard.append([InlineKeyboardButton("⚠️ 🗑️ លុបទិន្នន័យទាំងអស់ (Clear All)", callback_data="rpt_clear_all_confirm")])
         keyboard.append([InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")])
 
         inline_markup = InlineKeyboardMarkup(keyboard)
@@ -162,7 +162,7 @@ async def report_admin_manage_callback(update: Update, context: ContextTypes.DEF
 
         dl_str = format_dt(task.get("deadline"), lang=lang)
         prompt_text = (
-            f"✏️ **កែប្រែភារកិច្ច/របាយការណ៍ #{task_id}៖**\n\n"
+            f"✏️ **កែប្រែភារកិច្ច/របាយការណ៍ '{task['title']}'៖**\n\n"
             f"📌 **ចំណងជើង៖** {task['title']}\n"
             f"⏰ **កាលបរិច្ឆេទកំណត់៖** {dl_str}\n"
             f"📊 **ស្ថានភាព៖** {task.get('status', 'pending')}\n\n"
@@ -179,9 +179,9 @@ async def report_admin_manage_callback(update: Update, context: ContextTypes.DEF
         task_id = data.replace("edit_title_", "")
         context.user_data["editing_task_id"] = task_id
         prompt_msg = (
-            f"✏️ **សូមផ្ញើសារចំណងជើងថ្មីសម្រាប់ភារកិច្ច #${task_id} មកកាន់ទីនេះ៖**"
+            f"✏️ **សូមផ្ញើសារចំណងជើងថ្មីសម្រាប់ភារកិច្ចនេះមកកាន់ទីនេះ៖**"
             if lang == "km" else
-            f"✏️ **Please send the new title for task #${task_id} here:**"
+            f"✏️ **Please send the new title for this task here:**"
         )
         cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
         await query.edit_message_text(prompt_msg, reply_markup=InlineKeyboardMarkup([[cancel_btn]]))
@@ -192,9 +192,9 @@ async def report_admin_manage_callback(update: Update, context: ContextTypes.DEF
         from calendar_picker import create_calendar
         cal_kb = create_calendar()
         prompt_msg = (
-            f"⏰ **សូមជ្រើសរើសកាលបរិច្ឆេទកំណត់ថ្មីសម្រាប់ភារកិច្ច #${task_id}៖**"
+            f"⏰ **សូមជ្រើសរើសកាលបរិច្ឆេទកំណត់ថ្មីសម្រាប់ភារកិច្ចនេះ៖**"
             if lang == "km" else
-            f"⏰ **Please select new deadline date for task #${task_id}:**"
+            f"⏰ **Please select new deadline date for this task:**"
         )
         await query.edit_message_text(prompt_msg, reply_markup=cal_kb)
 
