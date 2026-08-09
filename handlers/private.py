@@ -432,7 +432,7 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             user_id=user.id,
             deadline=deadline
         )
-        dl_str = format_dt(deadline)
+        dl_str = format_dt(deadline, lang=lang)
         confirm_text = t("todo_added", lang, draft["title"], dl_str)
     else:
         task = db.create_task(
@@ -445,7 +445,7 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             assigned_by_username=user.username or user.first_name,
             deadline=deadline
         )
-        dl_str = format_dt(deadline)
+        dl_str = format_dt(deadline, lang=lang)
         confirm_text = t(
             "task_assigned",
             lang,
@@ -454,6 +454,9 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             dl_str,
             user.first_name
         )
+        # Import and send private notification to assigned staff member
+        from handlers.group import notify_assigned_user
+        await notify_assigned_user(context, task, group_title=chat.title if (chat and chat.type != "private") else "Group")
 
     context.user_data.pop("task_draft", None)
     if query:

@@ -64,10 +64,53 @@ async def is_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> b
         return False
 
 
+import logging
+logger = logging.getLogger(__name__)
+
+
+async def notify_assigned_user(context: ContextTypes.DEFAULT_TYPE, task: dict, group_title: str = "") -> None:
+    """Send direct private Telegram alert to assigned staff member if registered with bot."""
+    assigned_username = task.get("assigned_to_username")
+    if not assigned_username:
+        return
+    
+    assigned_user = db.get_user_by_username(assigned_username)
+    if not assigned_user or not assigned_user.get("user_id"):
+        return
+
+    assigned_user_id = assigned_user["user_id"]
+    lang = assigned_user.get("language", "km")
+    dl_str = format_dt(task.get("deadline"), lang=lang)
+    assigner_name = task.get("assigned_by_username") or "ប្រធាន"
+
+    if lang == "km":
+        notify_msg = (
+            f"🔔 **លោកអ្នកទទួលបានភារកិច្ចថ្មីដែលបានប្រគល់ជូន!**\n\n"
+            f"📌 **បរិយាយ (Task)៖** {task['title']}\n"
+            f"⏰ **កាលបរិច្ឆេទកំណត់ (Deadline)៖** {dl_str}\n"
+            f"👔 **ប្រគល់ដោយប្រធាន (Assigned By)៖** @{assigner_name}\n"
+            f"💬 **ក្រុម (Group)៖** {group_title or 'Group'}"
+        )
+    else:
+        notify_msg = (
+            f"🔔 **You have received a new assigned task!**\n\n"
+            f"📌 **Task:** {task['title']}\n"
+            f"⏰ **Deadline:** {dl_str}\n"
+            f"👔 **Assigned By:** @{assigner_name}\n"
+            f"💬 **Group:** {group_title or 'Group'}"
+        )
+
+    try:
+        await context.bot.send_message(chat_id=assigned_user_id, text=notify_msg, parse_mode="Markdown")
+        logger.info(f"Delivered private assignment notification to @{assigned_username} (ID {assigned_user_id})")
+    except Exception as e:
+        logger.warning(f"Could not deliver private assignment notification to @{assigned_username} (ID {assigned_user_id}): {e}")
+
+
 async def assign_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Handle /assign @username <task details> <YYYY-MM-DD HH:MM>
-    Allows boss or group admins to assign tasks to team members.
+    Handle /assign command in group chat.
+    Syntax: /assign @username <task_description> <YYYY-MM-DD HH:MM>
     """
     chat = update.effective_chat
     user = update.effective_user
@@ -123,7 +166,7 @@ async def assign_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         deadline=deadline
     )
 
-    dl_str = format_dt(deadline)
+    dl_str = format_dt(deadline, lang=lang)
 
     # Send public group confirmation with @mention
     response_msg = t(
@@ -135,6 +178,9 @@ async def assign_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         user.first_name
     )
     await target_msg.reply_text(response_msg)
+
+    # Dispatch direct private notification to assigned staff member
+    await notify_assigned_user(context, task, group_title=chat.title or "Group")
 
 
 async def grouptasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

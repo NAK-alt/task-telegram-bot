@@ -106,6 +106,18 @@ def register_or_update_user(user_id: int, username: Optional[str], first_name: O
         return user_data
 
 
+def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
+    """Lookup registered user profile in Firestore by Telegram @username."""
+    if not username:
+        return None
+    clean_username = username.lstrip("@").lower().strip()
+    db = get_db()
+    docs = db.collection("users").where("username", "==", clean_username).limit(1).stream()
+    for doc in docs:
+        return doc.to_dict()
+    return None
+
+
 def get_user_role(user_id: int) -> Optional[str]:
     """Retrieve user role: 'boss' (ប្រធានការិយាល័យ) or 'staff' (មន្ត្រី)."""
     db = get_db()
