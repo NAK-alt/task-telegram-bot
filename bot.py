@@ -55,8 +55,6 @@ from handlers.report import (
     report_command,
     report_type_callback,
     report_generate_callback,
-    clear_all_command,
-    report_clear_all_callback,
     report_admin_manage_callback
 )
 
@@ -112,8 +110,6 @@ def main() -> None:
     application.add_handler(CommandHandler("mytasks", mytasks_command))
     application.add_handler(CommandHandler("membertasks", membertasks_command))
     application.add_handler(CommandHandler("delete", delete_command))
-    application.add_handler(CommandHandler("clearall", clear_all_command))
-    application.add_handler(CommandHandler("deleteall", clear_all_command))
 
     # Group Scope Handlers
     application.add_handler(CommandHandler("assign", assign_command))

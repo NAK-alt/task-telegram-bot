@@ -58,8 +58,6 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 [InlineKeyboardButton(t("btn_fmt_msg", lang), callback_data="rpt_fmt_msg_staff")],
                 [InlineKeyboardButton(t("btn_fmt_excel", lang), callback_data="rpt_fmt_excel_staff")],
             ]
-            if user.id == db.ADMIN_USER_ID:
-                rows.append([InlineKeyboardButton("⚠️ 🗑️ លុបទិន្នន័យរបាយការណ៍ទាំងអស់", callback_data="rpt_clear_all_confirm")])
             rows.append([cancel_btn])
             fmt_kb = InlineKeyboardMarkup(rows)
             await target_msg.reply_text(t("prompt_report_fmt", lang), reply_markup=fmt_kb)
@@ -84,7 +82,6 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         ]
         if user.id == db.ADMIN_USER_ID:
             rows.append([InlineKeyboardButton("📋 គ្រប់គ្រង & កែប្រែ/លុប របាយការណ៍ទាំងអស់ (Admin)", callback_data="rpt_admin_manage")])
-            rows.append([InlineKeyboardButton("⚠️ 🗑️ លុបទិន្នន័យរបាយការណ៍ទាំងអស់", callback_data="rpt_clear_all_confirm")])
         rows.append([cancel_btn])
         inline_kb = InlineKeyboardMarkup(rows)
         await target_msg.reply_text(t("prompt_report_type", lang), reply_markup=inline_kb)
@@ -200,79 +197,6 @@ async def report_admin_manage_callback(update: Update, context: ContextTypes.DEF
             f"⏰ **Please select new deadline date for task #${task_id}:**"
         )
         await query.edit_message_text(prompt_msg, reply_markup=cal_kb)
-
-
-async def clear_all_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Admin Handler: Delete all task records from Firestore.
-    Restricted strictly to Telegram Admin ID 1079885088.
-    """
-    user = update.effective_user
-    target_msg = update.effective_message
-    if not user or not target_msg:
-        return
-
-    lang = db.get_user_language(user.id)
-    if user.id != db.ADMIN_USER_ID:
-        await target_msg.reply_text(t("unauthorized_admin", lang))
-        return
-
-    confirm_kb = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("⚠️ បាទ/ចាស លុបទិន្នន័យទាំងអស់", callback_data="rpt_clear_all_do"),
-        ],
-        [
-            InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard"),
-        ]
-    ])
-
-    confirm_prompt = (
-        "⚠️ **តើអ្នកពិតជាចង់លុបទិន្នន័យភារកិច្ច និងរបាយការណ៍ទាំងអស់ចេញពីប្រព័ន្ធមែនទេ?**\n\n*(កត់សម្គាល់៖ ប្រតិបត្តិការនេះនឹងលុបភារកិច្ចទាំងអស់ទាំងក្នុងដំណើរការ និងបានបញ្ចប់)*"
-        if lang == "km" else
-        "⚠️ **Are you sure you want to delete ALL tasks and reports from the system?**\n\n*(Note: This will delete all pending and completed task records)*"
-    )
-    await target_msg.reply_text(confirm_prompt, reply_markup=confirm_kb)
-
-
-async def report_clear_all_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle confirmation and execution of clearing all task records (Admin ID 1079885088 only)."""
-    query = update.callback_query
-    user = update.effective_user
-    if not query or not user:
-        return
-
-    lang = db.get_user_language(user.id)
-    if user.id != db.ADMIN_USER_ID:
-        await query.answer(t("unauthorized_admin", lang), show_alert=True)
-        return
-
-    await query.answer()
-    data = query.data
-
-    if data == "rpt_clear_all_confirm":
-        confirm_kb = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("⚠️ បាទ/ចាស លុបទិន្នន័យទាំងអស់", callback_data="rpt_clear_all_do"),
-            ],
-            [
-                InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard"),
-            ]
-        ])
-        confirm_prompt = (
-            "⚠️ **តើអ្នកពិតជាចង់លុបទិន្នន័យភារកិច្ច និងរបាយការណ៍ទាំងអស់ចេញពីប្រព័ន្ធមែនទេ?**\n\n*(កត់សម្គាល់៖ ប្រតិបត្តិការនេះនឹងលុបភារកិច្ចទាំងអស់ទាំងក្នុងដំណើរការ និងបានបញ្ចប់)*"
-            if lang == "km" else
-            "⚠️ **Are you sure you want to delete ALL tasks and reports from the system?**\n\n*(Note: This will delete all pending and completed task records)*"
-        )
-        await query.edit_message_text(confirm_prompt, reply_markup=confirm_kb)
-
-    elif data == "rpt_clear_all_do":
-        count = db.delete_all_tasks(user.id)
-        done_text = (
-            f"🗑️ **ទិន្នន័យភារកិច្ច និងរបាយការណ៍ទាំងអស់ (ចំនួន {count} ភារកិច្ច) ត្រូវបានលុបចេញពីប្រព័ន្ធដោយជោគជ័យ!**"
-            if lang == "km" else
-            f"🗑️ **All task records and reports ({count} tasks) have been successfully deleted from the system!**"
-        )
-        await query.edit_message_text(done_text)
 
 
 async def report_type_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
