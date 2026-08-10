@@ -107,6 +107,36 @@ async def notify_assigned_user(context: ContextTypes.DEFAULT_TYPE, task: dict, g
         logger.warning(f"Could not deliver private assignment notification to @{assigned_username} (ID {assigned_user_id}): {e}")
 
 
+async def broadcast_task_to_groups(context: ContextTypes.DEFAULT_TYPE, task: dict, lang: str = "km") -> None:
+    """Broadcast newly created group task assignment from Boss's private chat to registered group chats."""
+    groups = db.get_all_registered_groups()
+    if not groups:
+        return
+
+    assigned_to = f"@{task['assigned_to_username']}" if task.get("assigned_to_username") else "Staff"
+    dl_str = format_dt(task.get("deadline"), lang=lang)
+    assigner_name = task.get("assigned_by_username") or "ប្រធាន"
+
+    group_msg = t(
+        "task_assigned",
+        lang,
+        assigned_to,
+        task["title"],
+        dl_str,
+        assigner_name
+    )
+
+    for g in groups:
+        gid = g.get("group_id")
+        if not gid:
+            continue
+        try:
+            await context.bot.send_message(chat_id=gid, text=group_msg, parse_mode="Markdown")
+            logger.info(f"Broadcasted task assignment to group {gid}")
+        except Exception as e:
+            logger.warning(f"Could not broadcast task assignment to group {gid}: {e}")
+
+
 async def assign_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Handle /assign command in group chat.
@@ -118,6 +148,9 @@ async def assign_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if not chat or not user or not target_msg or chat.type == "private":
         return
+
+    # Automatically track & register group chat in database
+    db.register_or_update_group(chat.id, chat.title)
 
     lang = db.get_chat_language(chat.id)
 
@@ -192,6 +225,9 @@ async def grouptasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     target_msg = update.effective_message
     if not chat or not target_msg or chat.type == "private":
         return
+
+    # Automatically track & register group chat in database
+    db.register_or_update_group(chat.id, chat.title)
 
     lang = db.get_chat_language(chat.id)
     tasks = db.get_group_tasks(chat.id)

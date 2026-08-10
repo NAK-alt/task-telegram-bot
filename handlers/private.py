@@ -454,9 +454,10 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             dl_str,
             user.first_name
         )
-        # Import and send private notification to assigned staff member
-        from handlers.group import notify_assigned_user
+        # Import and send private notification to assigned staff member AND broadcast assignment to group chat
+        from handlers.group import notify_assigned_user, broadcast_task_to_groups
         await notify_assigned_user(context, task, group_title=chat.title if (chat and chat.type != "private") else "Group")
+        await broadcast_task_to_groups(context, task, lang=lang)
 
     context.user_data.pop("task_draft", None)
     if query:

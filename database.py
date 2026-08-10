@@ -253,6 +253,34 @@ def set_group_language(group_id: int, lang: str) -> None:
     db.collection("groups").document(str(group_id)).set({"language": lang, "group_id": group_id}, merge=True)
 
 
+def register_or_update_group(group_id: int, title: Optional[str] = None) -> Dict[str, Any]:
+    """Register or update a Telegram Group chat in Firestore."""
+    db = get_db()
+    ref = db.collection("groups").document(str(group_id))
+    doc = ref.get()
+    group_data = {
+        "group_id": group_id,
+        "title": title or "Group",
+        "last_updated": datetime.datetime.now(pytz.utc)
+    }
+    if doc.exists:
+        ref.update(group_data)
+        existing = doc.to_dict()
+        existing.update(group_data)
+        return existing
+    else:
+        group_data["language"] = DEFAULT_LANGUAGE
+        ref.set(group_data)
+        return group_data
+
+
+def get_all_registered_groups() -> List[Dict[str, Any]]:
+    """Retrieve all registered group chats."""
+    db = get_db()
+    docs = db.collection("groups").stream()
+    return [doc.to_dict() for doc in docs]
+
+
 # ------------------------------------------------------------------
 # Task Operations (Private & Group Scopes)
 # ------------------------------------------------------------------
