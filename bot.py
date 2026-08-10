@@ -76,7 +76,16 @@ async def post_init_setup(application) -> None:
 
 
 async def wizard_text_input_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Pass text messages to interactive task creation wizard if active."""
+    """Pass text messages to interactive task creation wizard if active and passively track group members."""
+    user = update.effective_user
+    chat = update.effective_chat
+    if user and chat:
+        if chat.type != "private":
+            db.register_or_update_group(chat.id, chat.title)
+            db.register_or_update_user(user.id, user.username, user.first_name)
+        else:
+            db.register_or_update_user(user.id, user.username, user.first_name)
+
     await handle_task_creation_text_input(update, context)
 
 
