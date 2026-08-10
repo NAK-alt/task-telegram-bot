@@ -362,8 +362,113 @@ async def add_task_type_callback(update: Update, context: ContextTypes.DEFAULT_T
         context.user_data["task_draft"] = {"scope": "private"}
         await query.edit_message_text(t("wizard_prompt_personal_title", lang), reply_markup=cancel_kb)
     elif data == "add_type_staff":
-        context.user_data["task_draft"] = {"scope": "group"}
-        await query.edit_message_text(t("wizard_prompt_staff_task", lang), reply_markup=cancel_kb)
+        context.user_data["task_draft"] = {"scope": "group", "step": "select_staff"}
+        staff_kb = build_staff_selector_keyboard(lang)
+        prompt_msg = (
+            "👤 **សូមជ្រើសរើសមន្ត្រីដែលត្រូវប្រគល់ភារកិច្ច (Select Staff Officer)៖**\n\n*(ឬវាយបញ្ចូល @username ឈ្មោះភារកិច្ច)*"
+            if lang == "km" else
+            "👤 **Please select the staff member to assign:**\n\n*(or type @username task_title)*"
+        )
+        await query.edit_message_text(prompt_msg, reply_markup=staff_kb, parse_mode="Markdown")
+
+
+def build_staff_selector_keyboard(lang: str = "km") -> InlineKeyboardMarkup:
+    """Build clickable Inline Keyboard with registered staff usernames."""
+    users = db.get_all_registered_users()
+    keyboard = []
+    
+    staff_buttons = []
+    for u in users:
+        uname = u.get("username")
+        first_name = u.get("first_name") or "Staff"
+        if uname:
+            btn_label = f"👤 {first_name} (@{uname})"
+            staff_buttons.append(InlineKeyboardButton(btn_label, callback_data=f"sel_staff_{uname}"))
+    
+    for i in range(0, len(staff_buttons), 2):
+        keyboard.append(staff_buttons[i:i+2])
+    
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+    keyboard.append([cancel_btn])
+    return InlineKeyboardMarkup(keyboard)
+
+
+def build_group_selector_keyboard(lang: str = "km") -> InlineKeyboardMarkup:
+    """Build clickable Inline Keyboard with registered groups."""
+    groups = db.get_all_registered_groups()
+    keyboard = []
+    
+    group_buttons = []
+    for g in groups:
+        title = g.get("title") or "Group"
+        gid = g.get("group_id")
+        if gid:
+            btn_label = f"👥 {title}"
+            group_buttons.append(InlineKeyboardButton(btn_label, callback_data=f"sel_grp_{gid}"))
+    
+    for i in range(0, len(group_buttons), 2):
+        keyboard.append(group_buttons[i:i+2])
+    
+    if len(groups) > 1:
+        all_label = "🌐 គ្រប់ក្រុមទាំងអស់ (All Groups)" if lang == "km" else "🌐 All Groups"
+        keyboard.append([InlineKeyboardButton(all_label, callback_data="sel_grp_all")])
+        
+    cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+    keyboard.append([cancel_btn])
+    return InlineKeyboardMarkup(keyboard)
+
+
+async def staff_group_selection_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle interactive selection of staff member and target group in wizard."""
+    query = update.callback_query
+    user = update.effective_user
+    if not query or not user:
+        return
+
+    await query.answer()
+    data = query.data
+    lang = db.get_user_language(user.id)
+    draft = context.user_data.get("task_draft") or {"scope": "group"}
+
+    if data.startswith("sel_staff_"):
+        uname = data.replace("sel_staff_", "")
+        draft["assigned_to_username"] = uname
+        draft["step"] = "select_group"
+        context.user_data["task_draft"] = draft
+
+        groups = db.get_all_registered_groups()
+        if groups:
+            grp_kb = build_group_selector_keyboard(lang)
+            prompt_msg = (
+                f"👤 **មន្ត្រីជ្រើសរើស៖ @{uname}**\n\n🏢 **សូមជ្រើសរើសក្រុមដើម្បីផ្ញើសារប្រគល់ភារកិច្ច (Select Target Group)៖**"
+                if lang == "km" else
+                f"👤 **Selected Staff: @{uname}**\n\n🏢 **Please select target group to broadcast assignment:**"
+            )
+            await query.edit_message_text(prompt_msg, reply_markup=grp_kb, parse_mode="Markdown")
+        else:
+            draft["step"] = "awaiting_title"
+            cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+            prompt_msg = (
+                f"👤 **មន្ត្រីជ្រើសរើស៖ @{uname}**\n\n📌 **សូមវាយបញ្ចូលបរិយាយ/ចំណងជើងភារកិច្ច (ឧទាហរណ៍៖ រៀបចំរបាយការណ៍ប្រចាំខែ)៖**"
+                if lang == "km" else
+                f"👤 **Selected Staff: @{uname}**\n\n📌 **Please type task description/title:**"
+            )
+            await query.edit_message_text(prompt_msg, reply_markup=InlineKeyboardMarkup([[cancel_btn]]), parse_mode="Markdown")
+
+    elif data.startswith("sel_grp_"):
+        grp_target = data.replace("sel_grp_", "")
+        draft["target_group_id"] = grp_target
+        draft["step"] = "awaiting_title"
+        context.user_data["task_draft"] = draft
+
+        uname = draft.get("assigned_to_username", "Staff")
+        cancel_btn = InlineKeyboardButton(t("btn_cancel", lang), callback_data="cancel_wizard")
+        prompt_msg = (
+            f"👤 **មន្ត្រីជ្រើសរើស៖ @{uname}**\n\n📌 **សូមវាយបញ្ចូលបរិយាយ/ចំណងជើងភារកិច្ច (ឧទាហរណ៍៖ រៀបចំរបាយការណ៍ប្រចាំខែ)៖**"
+            if lang == "km" else
+            f"👤 **Selected Staff: @{uname}**\n\n📌 **Please type task description/title:**"
+        )
+        await query.edit_message_text(prompt_msg, reply_markup=InlineKeyboardMarkup([[cancel_btn]]), parse_mode="Markdown")
 
 
 def parse_flexible_datetime(date_str: str, tz_name: str = DEFAULT_TIMEZONE, base_date: Optional[str] = None) -> Optional[datetime.datetime]:
@@ -454,10 +559,9 @@ async def finalize_task_with_deadline(update: Update, context: ContextTypes.DEFA
             dl_str,
             user.first_name
         )
-        # Import and send private notification to assigned staff member AND broadcast assignment to group chat
         from handlers.group import notify_assigned_user, broadcast_task_to_groups
         await notify_assigned_user(context, task, group_title=chat.title if (chat and chat.type != "private") else "Group")
-        await broadcast_task_to_groups(context, task, lang=lang)
+        await broadcast_task_to_groups(context, task, lang=lang, target_group_id=draft.get("target_group_id"))
 
     context.user_data.pop("task_draft", None)
     if query:
@@ -669,16 +773,36 @@ async def handle_task_creation_text_input(update: Update, context: ContextTypes.
         await finalize_task_with_deadline(update, context, draft, deadline=deadline, lang=lang)
         return True
 
+    # Step 1.5: User already picked staff via button and is now typing title
+    if draft.get("step") == "awaiting_title":
+        draft["title"] = text
+        draft["step"] = "awaiting_deadline"
+        local_tz = pytz.timezone(DEFAULT_TIMEZONE)
+        now = datetime.datetime.now(local_tz)
+        cal_kb = build_calendar_keyboard(now.year, now.month, lang=lang)
+        prompt_text = t("wizard_prompt_deadline", lang, draft["title"])
+        await msg.reply_text(prompt_text, reply_markup=cal_kb)
+        return True
+
     # Step 1: User is typing title (and assignee if staff assignment)
     if draft["scope"] == "private":
         draft["title"] = text
-    else:  # group / staff assignment
-        tokens = text.split(" ", 1)
-        if len(tokens) < 2 or not tokens[0].startswith("@"):
-            await msg.reply_text(t("wizard_prompt_staff_task", lang))
-            return True
-        draft["assigned_to_username"] = tokens[0].lstrip("@")
-        draft["title"] = tokens[1]
+    else:  # group / staff assignment (manual text fallback)
+        if "assigned_to_username" in draft:
+            draft["title"] = text
+        else:
+            tokens = text.split(" ", 1)
+            if len(tokens) < 2 or not tokens[0].startswith("@"):
+                staff_kb = build_staff_selector_keyboard(lang)
+                prompt_msg = (
+                    "👤 **សូមជ្រើសរើសមន្ត្រីដែលត្រូវប្រគល់ភារកិច្ចតាមរយៈប៊ូតុង ឬវាយបញ្ចូលទម្រង់៖ @username ឈ្មោះភារកិច្ច**"
+                    if lang == "km" else
+                    "👤 **Please select staff via button or type format: @username task_title**"
+                )
+                await msg.reply_text(prompt_msg, reply_markup=staff_kb, parse_mode="Markdown")
+                return True
+            draft["assigned_to_username"] = tokens[0].lstrip("@")
+            draft["title"] = tokens[1]
 
     draft["step"] = "awaiting_deadline"
 

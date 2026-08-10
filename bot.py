@@ -42,6 +42,7 @@ from handlers.private import (
     prompt_add_task_options,
     prompt_complete_assigned_task,
     add_task_type_callback,
+    staff_group_selection_callback,
     deadline_preset_callback,
     calendar_callback_handler,
     handle_task_creation_text_input
@@ -132,6 +133,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(report_generate_callback, pattern="^rpt_fmt_"))
     application.add_handler(CallbackQueryHandler(report_admin_manage_callback, pattern="^(rpt_admin_manage|edit_task_menu_|edit_title_|edit_dl_)"))
     application.add_handler(CallbackQueryHandler(add_task_type_callback, pattern="^add_type_"))
+    application.add_handler(CallbackQueryHandler(staff_group_selection_callback, pattern="^(sel_staff_|sel_grp_)"))
     application.add_handler(CallbackQueryHandler(deadline_preset_callback, pattern="^dl_preset_"))
     application.add_handler(CallbackQueryHandler(role_button_callback, pattern="^set_role_"))
     application.add_handler(CallbackQueryHandler(navigation_callback_handler, pattern="^cb_nav_"))
